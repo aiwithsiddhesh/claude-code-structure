@@ -1,5 +1,5 @@
 ---
-description: Triage a bug discovered during development or QA. Classifies severity, assigns to the correct agent and sprint, and logs it in SPRINT.md. Use for any defect found during delivery — not just QA bugs.
+description: Triage a bug discovered during development or QA. Classifies severity, assigns to the correct agent and sprint, creates BUG-{N}.md as the living bug document, and logs a reference in SPRINT.md. Use for any defect found during delivery — not just QA bugs.
 disable-model-invocation: true
 argument-hint: "[project-name]"
 ---
@@ -9,7 +9,11 @@ argument-hint: "[project-name]"
 ## Read Current State
 
 ```
-!`cat output/$ARGUMENTS/SPRINT.md 2>/dev/null || echo "ERROR: output/$ARGUMENTS/SPRINT.md not found."`
+!`cat output/$ARGUMENTS/SPRINT.md 2>/dev/null || echo "ERROR: SPRINT.md not found"`
+```
+
+```
+!`ls output/$ARGUMENTS/.bugs/ 2>/dev/null | grep "^BUG-" | sort -t'-' -k2 -n | tail -1 || echo "NO_BUGS_YET"`
 ```
 
 ---
@@ -21,116 +25,166 @@ You are the **hiring-manager-orchestrator** working with **manual-functional-sde
 ## Step 1 — Capture Bug Details
 
 Collect from the reporter:
-- **What happened**: observed behaviour
-- **What should happen**: expected behaviour
-- **Steps to reproduce**: exact steps (if known)
-- **Where**: feature, component, endpoint, or screen affected
-- **Discovered by**: developer self-found / QA / stakeholder / production
-- **Frequency**: always / intermittent / once
+- **What happened** — observed behaviour
+- **What should happen** — expected behaviour
+- **Steps to reproduce** — exact steps (if known). If unknown, ask manual-functional-sdet to reproduce before proceeding.
+- **Where** — feature, component, endpoint, or screen affected
+- **Discovered by** — developer self-found / QA / stakeholder
+- **Frequency** — always / intermittent / once
+
+Do not proceed until reproduction steps are known. A bug without reproduction steps cannot be fixed reliably.
 
 ---
 
-## Step 2 — Classify Severity
+## Step 2 — Determine BUG Number
+
+Read the `.bugs/` listing from above.
+- If no bugs exist yet → this is BUG-001
+- If bugs exist → increment the highest existing number (BUG-004 → BUG-005)
+
+---
+
+## Step 3 — Classify Severity
 
 | Severity | Definition | Example |
 |---|---|---|
 | **Critical** | Core functionality broken, no workaround, blocks release | Login fails for all users, data loss, security vulnerability |
-| **High** | Feature is unusable but workaround exists, or affects majority of users | Form submits but confirmation never shows, export produces wrong data |
-| **Medium** | Degraded experience but feature still works, affects a subset of users | Pagination off by one, tooltip wrong, slow query on edge case |
-| **Low** | Cosmetic, copy, or minor UX issue with no functional impact | Button misaligned on mobile, spelling error, wrong colour |
+| **High** | Feature unusable, workaround exists, or affects most users | Form submits but confirmation never shows, export produces wrong data |
+| **Medium** | Degraded experience, feature still works, subset of users affected | Pagination off by one, slow query on edge case |
+| **Low** | Cosmetic, copy, or minor UX with no functional impact | Button misaligned, spelling error, wrong colour |
 
-**Additional escalation rules:**
-- Any **security vulnerability** → automatically Critical regardless of scope
-- Any **data corruption or loss** → automatically Critical
-- Any bug that **breaks a committed sprint item's acceptance criteria** → at least High
+**Auto-escalation rules:**
+- Any security vulnerability → Critical
+- Any data corruption or loss → Critical
+- Any bug breaking a committed sprint item's acceptance criteria → at least High
 
 ---
 
-## Step 3 — Assign Owner Agent
-
-Based on where the bug lives:
+## Step 4 — Assign Owner Agent
 
 | Bug Location | Owner Agent |
 |---|---|
-| UI rendering, component, form, styling | frontend-engineer |
-| API response, business logic, auth, DB query | backend-engineer |
+| UI, component, form, styling | frontend-engineer |
+| API, business logic, auth, DB query | backend-engineer |
 | Full-stack data flow (UI → API → DB) | full-stack-engineer |
-| CI/CD, deployment, environment, infra | devops-cloud-engineer |
-| LLM response, RAG retrieval, prompt | genai-llm-engineer |
+| CI/CD, deployment, environment | devops-cloud-engineer |
+| LLM, RAG, prompt, embeddings | genai-llm-engineer |
 | ML model output, data pipeline | data-ml-engineer |
 | Cross-cutting or unknown | hiring-manager-orchestrator investigates first |
 
 ---
 
-## Step 4 — Assign to Sprint
+## Step 5 — Assign to Sprint
 
-| Severity | Sprint Assignment |
+| Severity | Assignment |
 |---|---|
-| **Critical** | Current sprint — pause lower-priority work if needed. Fix before any new features. |
-| **High** | Current sprint — add to committed items. Does not pause other work unless capacity is full. |
-| **Medium** | Next sprint — add to backlog with High priority tag. |
-| **Low** | Backlog — standard priority. Include in next sprint planning if capacity allows. |
+| **Critical** | Current sprint — assigned agent pauses lower-priority work |
+| **High** | Current sprint — normal priority |
+| **Medium** | Next sprint backlog |
+| **Low** | Backlog |
 
-**Override rule**: if fixing this bug would require reworking a completed sprint item that manual QA has already signed off, run `/change-request {project-name}` instead — the rework scope needs a formal impact assessment.
+Override: if fixing requires reworking an already QA-verified item → run `/change-request {project}` instead.
 
 ---
 
-## Step 5 — Produce Bug Record
+## Step 6 — Create BUG-{N}.md
+
+Create `output/{project}/.bugs/BUG-{N}.md`:
 
 ```markdown
-## Bug BUG-{N}
+# BUG-{N} — {short descriptive title}
 
-**Date**: {today}
-**Discovered by**: {developer / QA / stakeholder}
+**Status**: OPEN
+**Severity**: {Critical / High / Medium / Low}
+**Type**: {Functional / Security / Performance / UI / Data}
+**Project**: {project}
 **Sprint at discovery**: Sprint {N}
+**Found by**: {agent or stakeholder}
+**Assigned to**: {dev agent}
+**Date**: {today}
 
-### Description
-**Observed**: {what happened}
-**Expected**: {what should happen}
-**Steps to reproduce**:
-1. {step}
-2. {step}
+---
 
-**Feature/Component**: {where}
+## Reproduction Steps
+
+1. {exact step}
+2. {exact step}
+3. ...
+
 **Frequency**: Always / Intermittent / Once
+**Environment**: {browser, OS, env — fill in if known}
 
-### Classification
-**Severity**: Critical / High / Medium / Low
-**Type**: Functional / Security / Performance / UI / Data
-**Root cause hypothesis**: {initial guess — agent can revise}
+## Expected Behaviour
+{what should happen}
 
-### Assignment
-**Owner agent**: {agent}
-**Sprint assignment**: Sprint {N} (current) / Sprint {N+1} / Backlog
-**Priority within sprint**: Immediate / Normal / Low
+## Actual Behaviour
+{what actually happens}
 
-### Acceptance Criteria for Fix
-- [ ] {specific condition that confirms the bug is resolved}
-- [ ] Regression test added to prevent recurrence
+## Root Cause Hypothesis
+{initial guess — assigned agent will confirm or revise}
 
-### Status
-**Current**: Open
+---
+
+## Acceptance Criteria for Fix
+
+- [ ] {specific condition that confirms the bug is gone}
+- [ ] {specific condition for adjacent behaviour that must not regress}
+- [ ] Regression test added by automation-sdet-agent
+
+---
+
+## Fix
+
+**Status**: Not started
+**Agent**: {assigned dev agent}
+**Start**: Use `/task-start {project} BUG-{N}` — treat this as a task, acceptance criteria above are your DoD
+**Files changed**: (filled in when fix is complete)
+**Fix description**: (filled in when fix is complete)
+
+---
+
+## Verification
+
+**Status**: Pending fix completion
+**Agent**: manual-functional-sdet
+**Skill**: `/bug-verify {project} BUG-{N}` when fix is READY FOR VERIFICATION
+**Date verified**: 
+**Result**: VERIFIED / REJECTED
+**Notes**: 
+
+---
+
+## Regression Test
+
+**Status**: Pending verification
+**Agent**: automation-sdet-agent
+**Triggered by**: BUG-{N}.md status moving to VERIFIED
+**Test file**: 
+**Test name**: 
+**CI status**: 
 ```
 
 ---
 
-## Step 6 — Update SPRINT.md
+## Step 7 — Update SPRINT.md
 
-Append the bug record to the **Bug Log** section of `output/{project-name}/SPRINT.md`.
+Add a one-line reference to the **Bug Log** table in SPRINT.md:
+```
+| BUG-{N} | {today} | {title} | {severity} | {agent} | {sprint} | OPEN |
+```
 
-If Critical or High assigned to current sprint: also add it to the **Current Sprint** committed items table with `[BUG]` tag.
+If Critical or High in current sprint: also add to **Current Sprint** committed items:
+```
+| BUG-{N} | {title} [BUG] | {severity} | {agent} | OPEN |
+```
 
-If Medium or Low going to backlog: add to **Backlog** with `[BUG-{N}]` tag and severity noted.
-
-**Special handling for Critical bugs:**
-Output this alert:
+If Critical, output this alert:
 ```
 🚨 CRITICAL BUG — BUG-{N}
-
-This bug is assigned to the current sprint with immediate priority.
-{owner-agent} should pause current work and address this first.
-hiring-manager-orchestrator should notify all agents working on
-dependent features that this may affect their work.
+{agent} should pause current work and address this immediately.
+All agents working on features that depend on the affected area
+should be notified by hiring-manager-orchestrator.
 ```
 
-Confirm: `✅ Bug BUG-{N} triaged. Severity: {severity}. Assigned to: {agent}. Sprint: {sprint}. SPRINT.md updated.`
+Confirm: `✅ BUG-{N} created at output/{project}/.bugs/BUG-{N}.md. Severity: {severity}. Assigned: {agent}. Sprint: {sprint}.`
+`Fix: /task-start {project} BUG-{N} | Verify: /bug-verify {project} BUG-{N}`

@@ -62,6 +62,29 @@ Sign off only when:
 - ✓ Regression tests pass
 - ✓ Test evidence documented
 
+
+## Bug Ownership
+
+**manual-functional-sdet owns the bug report and the verification. Dev agents own the fix.**
+
+When you discover a bug during testing:
+1. Run `/bug-triage {project}` to create `BUG-{N}.md` — fill in exact reproduction steps, expected vs actual behaviour, and acceptance criteria for the fix
+2. The acceptance criteria you write in BUG-{N}.md become the dev agent's definition of done — write them precisely
+3. When the dev agent marks the bug `READY FOR VERIFICATION`, run `/bug-verify {project} BUG-{N}`
+4. VERIFIED means: all acceptance criteria pass AND no regressions found
+5. REJECTED means: return to dev agent with exact reason — what still fails, what evidence
+
+You never write application code to fix a bug. You find it, document it completely, and verify the fix.
+
+## Reading TASK.md Before Testing
+
+Before testing any sprint task, read `output/{project}/.tasks/{task-id}.md`:
+- **All steps must be checked off.** If any step is unchecked, the task is not ready for QA — return it to the agent with a note: `Task {task-id} returned: Step {N} is not complete.`
+- Check the Completion section for which files were written — test those specific files and endpoints.
+- Read any notes in the latest checkpoint that affect testing (edge cases, known issues, deferred decisions).
+
+Do not sign off on a task that has unchecked steps in TASK.md, even if the agent says it is done.
+
 ## Definition of Done
 
 All acceptance criteria validated, bugs documented and triaged, QA sign-off granted (or rejection issued with clear reasons), testing artifacts available for review.

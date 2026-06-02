@@ -63,6 +63,24 @@ Before handing off to development, requirements must be:
 - ✓ Free of major open questions
 - ✓ Reviewed and agreed by stakeholder
 
+
+## Story Sizing for Context Windows
+
+When writing user stories, size them so each story maps to one focused task that a single agent can plan and execute atomically.
+
+**A story is correctly sized when:**
+- One agent can own it end to end
+- It produces 2-5 verifiable artifacts (files, endpoints, test results)
+- It has 3-5 acceptance criteria
+- You do not need "and then" more than once to describe it
+
+**A story needs splitting when:**
+- It spans more than one agent naturally (e.g. "build the login UI and the auth API")
+- It has more than 6 acceptance criteria
+- It touches more than one layer of the stack in ways that are hard to sequence
+
+When in doubt, split. A story that is too small costs one extra row in SPRINT.md. A story that is too big costs a broken context window mid-implementation.
+
 ## Definition of Done
 
 Requirements documented, user stories written with acceptance criteria, risks identified, stakeholder approval received, development team confirms requirements are ready.

@@ -1,359 +1,747 @@
 # AI Software Delivery Team Framework
 
-This repository defines a reusable AI software delivery framework for planning, building, testing, and releasing software projects through specialized Claude agents. It is designed to turn a structured project intake into an agent assignment plan, project backlog, sprint workflow, quality gates, and generated implementation files.
+A production-grade multi-agent system for Claude Code that orchestrates software delivery from idea to release. Ten specialized agents, sprint-based workflow, context-aware task management, and a complete bug lifecycle — all enforced through structured rules, skills, and living state documents.
 
-The framework is documentation-first: agent definitions, operating rules, and reusable skills are built before sample applications. Generated project code belongs under `output/{project-name}/`, not in the repository root.
+---
 
-## What This Repository Contains
+## Table of Contents
 
-- A structured project intake file: `project-intake.json`
-- A JSON schema for intake validation and VS Code autocomplete: `project-intake.schema.json`
-- Claude agent definitions in `.claude/agents/`
-- Always-on and path-scoped operating rules in `.claude/rules/`
-- Reusable slash-command skills in `.claude/skills/`
-- VS Code schema wiring in `.vscode/settings.json`
-- Claude-facing repository instructions in `CLAUDE.md`
+1. [What This Is](#what-this-is)
+2. [Prerequisites](#prerequisites)
+3. [Directory Structure](#directory-structure)
+4. [Framework Architecture](#framework-architecture)
+5. [The Agent Team](#the-agent-team)
+6. [Rules Reference](#rules-reference)
+7. [Complete Project Workflow](#complete-project-workflow)
+8. [Sprint Lifecycle](#sprint-lifecycle)
+9. [Task Lifecycle](#task-lifecycle)
+10. [Bug Lifecycle](#bug-lifecycle)
+11. [Skills Reference](#skills-reference)
+12. [Project State Files](#project-state-files)
+13. [Context Loading Strategy](#context-loading-strategy)
+14. [Extending the Framework](#extending-the-framework)
 
-## Core Idea
+---
 
-The framework acts like an AI delivery operating system. A project starts with an intake document, then the orchestrator maps the project to the right specialist agents, creates a delivery plan, initializes sprint tracking, and enforces handoffs and quality gates throughout delivery.
+## What This Is
 
-The lifecycle is:
+This framework turns Claude Code into a structured software delivery team. Instead of ad-hoc prompting, every project follows a defined process:
 
-```text
-Intake -> Planning -> Development -> QA -> Release -> Retrospective
+- A **project intake form** captures requirements, stack, timeline, and constraints before any work begins
+- An **orchestrator agent** assigns the right specialists based on what the project actually needs
+- **Sprint planning** breaks work into weekly cycles with committed scope
+- **Task management** breaks sprint items into atomic steps that fit within a single context window — with checkpoints so no progress is lost between sessions
+- **Bug tracking** has a full lifecycle from discovery through fix, verification, and regression test
+- **Quality gates** prevent release without QA sign-off at every stage
+
+Everything is coordinated through three living state documents per project: `SPRINT.md`, `TASK.md` files, and `BUG-{N}.md` files.
+
+---
+
+## Prerequisites
+
+- [Claude Code](https://code.claude.com) installed and configured
+- A project directory where you want to deliver software
+
+No other setup required. Drop this framework into your project directory and start.
+
+---
+
+## Directory Structure
+
+```
+your-project/
+├── README.md                          ← this file
+├── CLAUDE.md                          ← project instructions (loaded every session)
+├── CLAUDE.local.md                    ← personal preferences (gitignore this)
+├── project-intake.json                ← fill before starting any project
+├── project-intake.schema.json         ← VS Code autocomplete + validation
+│
+├── .vscode/
+│   └── settings.json                  ← wires schema to intake file automatically
+│
+├── .claude/
+│   ├── agents/                        ← 10 specialist agents
+│   │   ├── hiring-manager-orchestrator.md
+│   │   ├── business-analyst-agent.md
+│   │   ├── frontend-engineer.md
+│   │   ├── backend-engineer.md
+│   │   ├── full-stack-engineer.md
+│   │   ├── devops-cloud-engineer.md
+│   │   ├── genai-llm-engineer.md
+│   │   ├── data-ml-engineer.md
+│   │   ├── manual-functional-sdet.md
+│   │   └── automation-sdet-agent.md
+│   │
+│   ├── rules/                         ← always-on and path-scoped rules
+│   │   ├── team-workflow.md           ← handoffs, quality gates, sprint rules, bug states
+│   │   ├── agent-coordination.md      ← who to assign, parallel vs sequential
+│   │   ├── coding-standards.md        ← naming, formatting, task lifecycle protocol
+│   │   ├── git-workflow.md            ← branches, conventional commits, PR rules
+│   │   ├── security.md                ← non-negotiables across all agents
+│   │   ├── frontend-patterns.md       ← path-scoped: React/TS/Tailwind conventions
+│   │   ├── api-patterns.md            ← path-scoped: REST naming, response envelope
+│   │   └── database.md                ← path-scoped: migrations, schema, Prisma
+│   │
+│   └── skills/                        ← on-demand workflows, invoked with /command
+│       ├── agent-registry/            ← /agent-registry
+│       ├── start-project/             ← /start-project
+│       ├── design-doc/                ← /design-doc
+│       ├── handoff/                   ← /handoff
+│       ├── sprint-plan/               ← /sprint-plan
+│       ├── sprint-review/             ← /sprint-review
+│       ├── change-request/            ← /change-request
+│       ├── bug-triage/                ← /bug-triage
+│       ├── bug-verify/                ← /bug-verify
+│       ├── task-start/                ← /task-start
+│       ├── task-checkpoint/           ← /task-checkpoint
+│       ├── task-resume/               ← /task-resume
+│       ├── release-checklist/         ← /release-checklist
+│       ├── status-report/             ← /status-report
+│       └── retrospective/             ← /retrospective
+│
+└── output/                            ← all generated project code lives here
+    └── {project-name}/
+        ├── SPRINT.md                  ← sprint state (single source of truth)
+        ├── .tasks/
+        │   └── S1-1.md                ← one TASK.md per sprint task
+        ├── .bugs/
+        │   └── BUG-001.md             ← one BUG file per bug
+        └── src/                       ← generated application code
 ```
 
-Each stage has a clear owner, expected inputs, required outputs, and acceptance criteria.
+---
 
-## Quick Start
+## Framework Architecture
 
-1. Open `project-intake.json`.
-2. Fill in the project identity, stack, features, non-functional requirements, timeline, and any constraints.
-3. Keep the `$schema` property pointing to `./project-intake.schema.json`.
-4. In Claude, run:
+### Three-Layer System
 
-```text
+The framework manages three distinct boundaries:
+
+```
+┌─────────────────────────────────────────┐
+│  PROJECT (project-intake.json)           │  What to build, who builds it,
+│  Scope, stack, timeline, constraints     │  deadline, output directory
+├─────────────────────────────────────────┤
+│  SPRINT (SPRINT.md)                      │  Which tasks are committed
+│  Weekly cycles, backlog, change log      │  this week, what's pending
+├─────────────────────────────────────────┤
+│  TASK / CONTEXT (.tasks/, .bugs/)        │  Atomic steps that fit in one
+│  Checkpoints, file lists, resume points  │  Claude Code context window
+└─────────────────────────────────────────┘
+```
+
+Each layer has its own state document. When they conflict, the lower layer (SPRINT.md) always wins over older artifacts (design docs, handoffs).
+
+### Context Loading Architecture
+
+Not all files are loaded in every session. The framework is designed to minimize unnecessary context:
+
+| Layer | Files | When Loaded |
+|---|---|---|
+| **Always** | `CLAUDE.md` + 5 unconditional rules | Every session |
+| **Path-scoped** | `frontend-patterns.md`, `api-patterns.md`, `database.md` | Only when touching matching file paths |
+| **Per-agent** | Agent file (avg 80 lines) | Only when that agent is invoked |
+| **On-demand** | 15 skills | Only when you run `/command` |
+
+Path-scoped rules include both standard paths (`src/**`) and output paths (`output/**/src/**`) so they trigger correctly regardless of where generated code lives.
+
+---
+
+## The Agent Team
+
+### Orchestration
+
+| Agent | Model | Role |
+|---|---|---|
+| `hiring-manager-orchestrator` | Opus | Coordinates the whole team. Reads SPRINT.md and `.bugs/` before every decision. Never writes code. |
+
+### Requirements
+
+| Agent | Model | Role |
+|---|---|---|
+| `business-analyst-agent` | Sonnet | Requirements, user stories, acceptance criteria, DoR checklist, story sizing |
+
+### Development
+
+| Agent | Model | Role |
+|---|---|---|
+| `frontend-engineer` | Sonnet | React, Next.js, TypeScript, Tailwind, accessibility, API integration |
+| `backend-engineer` | Sonnet | REST APIs, databases, auth/authz, business logic, migrations |
+| `full-stack-engineer` | Sonnet | End-to-end features when UI + API + DB work is tightly coupled |
+| `devops-cloud-engineer` | Sonnet | CI/CD, Docker, cloud infra, monitoring, deployment |
+| `genai-llm-engineer` | Sonnet | RAG pipelines, prompt engineering, LLM integrations, embeddings |
+| `data-ml-engineer` | Sonnet | Data pipelines, feature engineering, ML model training and evaluation |
+
+### Quality Assurance
+
+| Agent | Model | Role |
+|---|---|---|
+| `manual-functional-sdet` | Sonnet | Manual testing, bug documentation, fix verification, QA sign-off |
+| `automation-sdet-agent` | Sonnet | Automated test suites, CI integration, regression tests for verified bugs |
+
+### Assignment Decision Matrix
+
+| You need | Assign |
+|---|---|
+| Multi-agent coordination, blockers, release | `hiring-manager-orchestrator` |
+| Requirements clarification, user stories | `business-analyst-agent` |
+| UI only | `frontend-engineer` |
+| API / DB / backend only | `backend-engineer` |
+| Full feature (UI + API + DB, tightly coupled) | `full-stack-engineer` |
+| Infra, CI/CD, deployment | `devops-cloud-engineer` |
+| LLM, chatbot, RAG, embeddings | `genai-llm-engineer` |
+| Data pipelines, ML models | `data-ml-engineer` |
+| Manual QA, feature sign-off | `manual-functional-sdet` |
+| Automated tests, CI suite | `automation-sdet-agent` |
+
+**Rules:**
+- `hiring-manager-orchestrator` never writes code
+- `genai-llm-engineer` and `data-ml-engineer` are only assigned when the project genuinely needs AI/ML
+- `manual-functional-sdet` is mandatory before every release — cannot be skipped via `skip_agents`
+
+---
+
+## Rules Reference
+
+### Always-On Rules (loaded every session)
+
+**`team-workflow.md`** — The master process document. Covers the full project lifecycle, handoff protocol (7 required fields), quality gates at each stage, escalation paths, sprint cycle, change control decisions, bug severity sprint rules, task checkpoint quality gate, and the bug lifecycle state machine.
+
+**`agent-coordination.md`** — Assignment matrix, self-limitation rules, parallel vs sequential work guidance, QA timing rules.
+
+**`coding-standards.md`** — Naming conventions for TypeScript/JavaScript/Python/database, strict TypeScript rules, file and function length limits, comment standards, formatter config, and the mandatory task lifecycle protocol (task-start → checkpoint → resume).
+
+**`git-workflow.md`** — Branch naming (`feature/`, `fix/`, `chore/`, `docs/`, `refactor/`), Conventional Commits format with all types, PR description template, PR size limits (400 target / 800 hard), review rules, merge strategy, semver tagging.
+
+**`security.md`** — Non-negotiable rules: secrets management, input validation, parameterized queries, auth patterns, HTTP security headers, dependency scanning, logging restrictions, file operation safety. Includes a code-review security checklist.
+
+### Path-Scoped Rules (loaded only when touching matching files)
+
+**`frontend-patterns.md`** — Triggers on `src/**/*.{ts,tsx,jsx,js}`, `pages/**`, `app/**`, `components/**`, and all `output/**` equivalents. Covers: component anatomy, folder structure, state management hierarchy (local → React Query → Zustand), Tailwind usage, react-hook-form + Zod pattern, accessibility baseline.
+
+**`api-patterns.md`** — Triggers on `src/api/**`, `**/routes/**`, `**/controllers/**`, `**/handlers/**`, and all `output/**` equivalents. Covers: URL conventions, standard response envelope `{ data, meta }`, error envelope `{ error: { code, message, details } }`, HTTP status codes, pagination, versioning, per-route auth declaration.
+
+**`database.md`** — Triggers on `**/migrations/**`, `**/models/**`, `**/schemas/**`, `prisma/**`, and all `output/**` equivalents. Covers: migration naming and rollback requirements, schema conventions, index naming, N+1 prevention, transaction boundaries, Prisma patterns.
+
+---
+
+## Complete Project Workflow
+
+### Step 1 — Fill the Intake Form
+
+Open `project-intake.json`. VS Code will show autocomplete and validation automatically (wired via `.vscode/settings.json`).
+
+```json
+{
+  "project": {
+    "name": "customer-portal",
+    "display_name": "Customer Portal",
+    "description": "Self-service portal for enterprise customers to manage subscriptions and invoices.",
+    "type": "web-app"
+  },
+  "stack": {
+    "frontend": "next.js",
+    "backend": "node.js-express",
+    "database": "postgresql",
+    "auth": "jwt",
+    "hosting": "aws",
+    "ai_ml": false
+  },
+  "requirements": {
+    "features": [
+      "User registration and login with email/password",
+      "Dashboard showing subscription status and usage metrics",
+      "Invoice list with PDF download",
+      "Role-based access: admin sees all users, user sees own data"
+    ],
+    "out_of_scope": ["Payment processing", "Mobile app"],
+    "non_functional": {
+      "expected_users": "1k-10k",
+      "performance": "API p95 < 200ms",
+      "security_level": "high"
+    }
+  },
+  "timeline": {
+    "deadline": "2026-08-01",
+    "milestones": [
+      { "name": "MVP — auth + dashboard", "date": "2026-07-01" }
+    ]
+  }
+}
+```
+
+**Intake field mapping to agents:**
+
+| Field | Effect |
+|---|---|
+| `project.name` | Becomes `output/{name}/` — all code goes here |
+| `project.type` | Sets default agent roster |
+| `stack.frontend` | Assigns `frontend-engineer`, loads `frontend-patterns.md` |
+| `stack.backend` | Assigns `backend-engineer`, loads `api-patterns.md` + `database.md` |
+| `stack.hosting` | Assigns `devops-cloud-engineer` |
+| `stack.ai_ml: true` | Assigns `genai-llm-engineer` or `data-ml-engineer` based on `ai_ml_type` |
+| `requirements.features` | `business-analyst-agent` converts to user stories |
+| `requirements.out_of_scope` | Hard boundary — no agent builds these |
+| `security_level: high` | Mandatory security review on every PR, pen test before release |
+| `timeline.deadline` | Orchestrator flags scope vs timeline as FEASIBLE or AT RISK |
+| `team.skip_agents` | Removes agents from auto-assignment (cannot remove `manual-functional-sdet`) |
+| `context.constraints` | Hard rules passed to every agent |
+| `context.existing_codebase: true` | All agents read existing code before writing |
+
+### Step 2 — Start the Project
+
+```
 /start-project
 ```
 
-5. Review the generated assignment plan.
-6. Continue delivery through the sprint workflow:
+The skill reads `project-intake.json`, validates all required fields, auto-sets `output.dir` to `output/{project.name}/`, maps stack to agents, and produces:
+- Full Agent Assignment Plan with tasks per agent
+- Delivery Sequence (Phase 1: Requirements → Phase 2: Development → Phase 3: QA/Release)
+- Quality gates per phase
+- Timeline feasibility assessment
+- `output/{project.name}/SPRINT.md` initialized with all features in the backlog
 
-```text
-/sprint-plan
-[assigned agents complete work]
-/sprint-review
+### Step 3 — Requirements and Design
+
+`business-analyst-agent` converts intake features into user stories:
+```
+As a [user type]
+I want to [action]
+So that [benefit]
+
+Acceptance Criteria:
+- Given [context], when [action], then [outcome]
+```
+
+Before development begins on any non-trivial feature:
+```
+/design-doc [feature-name]
+```
+Produces a technical design document covering: problem statement, scope, proposed solution with architecture diagram, API contract, DB changes, alternatives considered, risks, and a review checklist.
+
+### Step 4 — Sprint Planning
+
+```
+/sprint-plan customer-portal
+```
+
+The orchestrator reads `SPRINT.md`, assesses backlog items for complexity and dependencies, commits a realistic scope for the week, assigns agents, and writes the sprint plan to `SPRINT.md`.
+
+### Step 5 — Development (Task Lifecycle)
+
+Each agent follows the three-command task protocol:
+
+```
+/task-start customer-portal S1-2
+```
+Breaks the sprint task into atomic steps, each producing one verifiable artifact. Creates `.tasks/S1-2.md`. No code is written before this exists.
+
+```
+# Agent works through steps, checking each off in TASK.md
+# Session ending before task is complete:
+/task-checkpoint customer-portal S1-2
+```
+Records completed steps, all files written, current state, and exact resume instructions. Updates SPRINT.md progress.
+
+```
+# New session continuing the same task:
+/task-resume customer-portal S1-2
+```
+Reads the last checkpoint. Agent continues from the exact stopping point. Does not re-read the whole codebase.
+
+### Step 6 — Mid-Sprint Events
+
+**Requirement change:**
+```
+/change-request customer-portal
+```
+Assesses change size (Trivial/Small/Medium/Large/Breaking), impact on current sprint, and produces a formal decision: **Absorb** (into current sprint), **Defer** (to backlog), or **Reject** (with reason). Records in `SPRINT.md` change log.
+
+**Bug discovered:**
+```
+/bug-triage customer-portal
+```
+Classifies severity, assigns owner agent, creates `output/customer-portal/.bugs/BUG-{N}.md` with full reproduction steps and acceptance criteria for the fix. Critical bugs pause lower-priority work immediately.
+
+### Step 7 — QA and Bug Resolution
+
+When a task is ready for QA, `manual-functional-sdet` reads `.tasks/{task-id}.md` to verify all steps are checked off, then tests against acceptance criteria.
+
+When a dev agent completes a bug fix:
+1. Updates `BUG-{N}.md` Fix section with files changed and description
+2. Sets status to `READY FOR VERIFICATION`
+
+```
+/bug-verify customer-portal BUG-001
+```
+`manual-functional-sdet` re-runs reproduction steps and validates acceptance criteria. Result is **VERIFIED** or **REJECTED** with exact reason. On VERIFIED, `automation-sdet-agent` writes a regression test and marks the bug **CLOSED**.
+
+### Step 8 — Sprint Review
+
+```
+/sprint-review customer-portal
+```
+Reviews each committed item (DONE / PARTIAL / NOT STARTED). Verifies TASK.md completion for every item. Moves incomplete items back to backlog with notes. Writes sprint to history. Triggers follow-up recommendations.
+
+### Step 9 — Release
+
+When all sprint features are complete and QA has signed off:
+```
+/release-checklist customer-portal
+```
+Runs through all gates: development completeness, testing coverage, documentation, infrastructure, security, and release readiness. Produces a GO / NO-GO / CONDITIONAL GO decision.
+
+### Step 10 — Retrospective
+
+```
+/retrospective customer-portal
+```
+Covers: delivery summary vs planned scope, timeline variance, What Went Well / What Could Be Better / Surprises tables, action items (with owner + date + success metric), framework improvement recommendations, agent performance notes, 6 delivery metrics, and sign-off.
+
+---
+
+## Sprint Lifecycle
+
+```
+/start-project
+     │
+     ▼
+/sprint-plan ──────────────────────────────────────────┐
+     │                                                   │ (repeat each sprint)
+     ▼                                                   │
+[Agents work tasks]                                      │
+  /task-start {project} {task-id}                        │
+  /task-checkpoint {project} {task-id}  (end of session) │
+  /task-resume {project} {task-id}      (new session)    │
+     │                                                   │
+     ├──── Requirement changes? → /change-request ───────┤ (Absorb/Defer/Reject)
+     ├──── Bug found?           → /bug-triage      ───── see Bug Lifecycle
+     │                                                   │
+     ▼                                                   │
+/sprint-review ─────────────────────────────────────────┘
+     │
+     ▼ (backlog empty, all QA signed off)
 /release-checklist
+     │
+     ▼
 /retrospective
 ```
 
-## Project Intake
+**Sprint rules:**
+- New work never enters an active sprint without a `/change-request` decision
+- `SPRINT.md` is the single source of truth — wins over all other artifacts
+- Incomplete items return to backlog at review — never auto-carry silently
+- `manual-functional-sdet` removal from `skip_agents` is blocked — QA is mandatory
 
-`project-intake.json` is the entry point for every new project. The schema requires these top-level sections:
+---
 
-| Section | Purpose |
-|---|---|
-| `project` | Project name, display name, description, and category |
-| `stack` | Frontend, backend, database, auth, hosting, and AI/ML choices |
-| `requirements` | Features, exclusions, expected scale, performance, and security level |
-| `timeline` | Deadline and optional milestones |
-| `team` | Optional manual agent include/exclude overrides |
-| `context` | Existing-codebase notes, reference docs, and hard constraints |
-| `output` | Optional generated file output directory override |
+## Task Lifecycle
 
-### Required Project Fields
+Every sprint task and bug fix follows the same three-command protocol:
 
-| Field | Notes |
-|---|---|
-| `project.name` | Kebab-case identifier. Used for `output/{project.name}/` |
-| `project.description` | Two to three sentences describing the goal and users |
-| `project.type` | One of `web-app`, `api`, `data-pipeline`, `mobile`, `ai-feature`, or `internal-tool` |
-| `requirements.features` | At least one specific feature |
-| `timeline.deadline` | ISO date, relative estimate, or quarter |
-
-### Supported Stack Values
-
-| Area | Values |
-|---|---|
-| Frontend | `react`, `next.js`, `vue`, `svelte`, `react-native`, `none` |
-| Backend | `node.js-express`, `node.js-fastify`, `python-fastapi`, `python-django`, `python-flask`, `go`, `none` |
-| Database | `postgresql`, `mysql`, `mongodb`, `sqlite`, `redis`, `supabase`, `none` |
-| Auth | `jwt`, `oauth2`, `session-cookie`, `api-key`, `supabase-auth`, `auth0`, `none` |
-| Hosting | `aws`, `gcp`, `azure`, `vercel`, `railway`, `fly.io`, `self-hosted`, `undecided` |
-| AI/ML Type | `llm-rag`, `ml-model`, `both` |
-
-Leave optional string values empty when undecided. Set `stack.ai_ml` to `true` only when the project requires LLMs, RAG, embeddings, chatbots, ML models, or data pipelines.
-
-## Repository Structure
-
-```text
-.
-+-- .claude/
-|   +-- agents/                 # Specialist agent definitions
-|   +-- rules/                  # Always-on and path-scoped operating rules
-|   +-- skills/                 # Reusable slash-command workflows
-+-- .vscode/
-|   +-- settings.json           # JSON schema binding for project-intake.json
-+-- CLAUDE.md                   # Claude-facing repository instructions
-+-- CLAUDE.local.md             # Local personal notes, not intended for git
-+-- project-intake.json         # Project kickoff input
-+-- project-intake.schema.json  # Intake validation schema
-+-- README.md                   # Human-facing project documentation
+```
+┌─────────────────────────────────────────────────────────────┐
+│  /task-start {project} {task-id}                             │
+│  → Reads sprint task details                                 │
+│  → Forces atomic step decomposition (max 10 steps)          │
+│  → Each step produces exactly one verifiable artifact        │
+│  → Creates output/{project}/.tasks/{task-id}.md              │
+│  → Begins Step 1 immediately                                 │
+└──────────────────────┬──────────────────────────────────────┘
+                       │
+              [Agent works through steps]
+              [Checks off each step in TASK.md]
+                       │
+              ┌────────┴────────┐
+              │                 │
+       Task complete?      Session ending?
+              │                 │
+              ▼                 ▼
+    /task-checkpoint    /task-checkpoint
+    (Completion entry)  (Mid-session checkpoint)
+    Status → READY           │
+    FOR QA                   │
+                        [New session]
+                             │
+                             ▼
+                    /task-resume {project} {task-id}
+                    → Reads last checkpoint
+                    → Shows exactly what's done, what's next
+                    → Lists files that exist
+                    → Continues from step N
 ```
 
-Generated implementation work should be placed in:
+**Atomic step rule:** A step must produce one verifiable artifact — a file, a passing test, a working endpoint. If you cannot verify completion by reading 1-2 files, the step is too big.
 
-```text
-output/{project-name}/
+**Task is DONE only when:** all steps checked off + `manual-functional-sdet` sign-off. An agent self-reporting done is not done.
+
+---
+
+## Bug Lifecycle
+
+```
+Anyone finds a bug
+       │
+       ▼
+/bug-triage {project}
+  Creates output/{project}/.bugs/BUG-{N}.md with:
+  - Exact reproduction steps
+  - Expected vs actual behaviour
+  - Severity classification
+  - Acceptance criteria for the fix
+  - Owner agent assigned
+  Updates SPRINT.md with one-line reference
+       │
+       ▼
+Dev agent reads BUG-{N}.md acceptance criteria
+  /task-start {project} BUG-{N}   ← same lifecycle as sprint tasks
+  [fixes the bug]
+  Updates BUG-{N}.md Fix section (files changed + description)
+  Sets status → READY FOR VERIFICATION
+       │
+       ▼
+/bug-verify {project} BUG-{N}
+  manual-functional-sdet re-runs exact reproduction steps
+  Validates all acceptance criteria
+       │
+       ├── REJECTED → returned to dev agent with exact reason
+       │              status → IN FIX
+       │
+       └── VERIFIED → automation-sdet-agent triggered
+                      Writes regression test from reproduction steps
+                      Confirms CI passing
+                      Sets status → CLOSED
 ```
 
-The root of this repository is reserved for framework files, not generated application code.
+**Bug states in BUG-{N}.md:**
 
-## Agents
+| State | Set By | Meaning |
+|---|---|---|
+| `OPEN` | `/bug-triage` | Documented, assigned, not yet in fix |
+| `IN FIX` | Dev agent | Actively being fixed |
+| `READY FOR VERIFICATION` | Dev agent | Fix complete, awaiting QA |
+| `REJECTED` | `/bug-verify` | Verification failed, returned to dev |
+| `VERIFIED` | `/bug-verify` | Fix confirmed, awaiting regression test |
+| `CLOSED` | `automation-sdet-agent` | Regression test written and passing in CI |
 
-The framework includes 10 specialist agents across planning, engineering, infrastructure, AI/ML, and QA.
+**A bug is not done until CLOSED.** SPRINT.md holds one-line references; `BUG-{N}.md` holds the full state. Always read the bug file for accurate status.
 
-| Agent | Primary Responsibility |
-|---|---|
-| `hiring-manager-orchestrator` | Coordinates projects, selects agents, resolves blockers, manages delivery flow |
-| `business-analyst-agent` | Clarifies requirements, user stories, acceptance criteria, MVP scope, risks |
-| `frontend-engineer` | Builds and debugs user interfaces, forms, accessibility, responsive behavior |
-| `backend-engineer` | Designs APIs, databases, auth, backend logic, integrations, validation |
-| `full-stack-engineer` | Handles tightly coupled frontend/backend features that should not be split |
-| `devops-cloud-engineer` | Handles infrastructure, CI/CD, containers, deployment, monitoring |
-| `genai-llm-engineer` | Handles LLMs, RAG, embeddings, vector databases, prompt engineering |
-| `data-ml-engineer` | Handles ETL, data pipelines, ML models, feature engineering, evaluation |
-| `manual-functional-sdet` | Performs manual QA, exploratory testing, regression checks, release sign-off |
-| `automation-sdet-agent` | Builds repeatable automated tests for UI, API, regression, and CI/CD |
+---
 
-Use `/agent-registry` when deciding which agent should own a task.
+## Skills Reference
 
-## Skills And Commands
+| Command | Agent | Purpose |
+|---|---|---|
+| `/agent-registry` | Any | Full agent reference with capabilities and assignment matrix |
+| `/start-project` | Orchestrator | Read intake, validate, assign agents, create SPRINT.md |
+| `/design-doc [feature]` | Lead engineer | Technical design doc before development begins |
+| `/handoff [from] to [to]` | Any | Structured handoff document between agents |
+| `/sprint-plan [project]` | Orchestrator | Commit backlog items to next sprint |
+| `/sprint-review [project]` | Orchestrator | Close sprint, verify TASK.md completion, move carry-forward |
+| `/change-request [project]` | Orchestrator | Assess mid-sprint requirement change: Absorb/Defer/Reject |
+| `/bug-triage [project]` | Orchestrator + SDET | Classify bug, create BUG-{N}.md, assign |
+| `/bug-verify [project] [bug-id]` | manual-functional-sdet | Verify fix: VERIFIED or REJECTED |
+| `/task-start [project] [task-id]` | Dev agent | Break task into atomic steps, create TASK.md |
+| `/task-checkpoint [project] [task-id]` | Dev agent | Write session checkpoint before ending |
+| `/task-resume [project] [task-id]` | Dev agent | Resume from last checkpoint in new session |
+| `/status-report [project]` | Orchestrator | Progress across all agents and sprint items |
+| `/release-checklist [project]` | Orchestrator | Pre-release GO/NO-GO gate |
+| `/retrospective [project]` | Orchestrator | Post-delivery review with action items |
 
-Skills live in `.claude/skills/` and are invoked as slash commands in Claude.
+---
 
-| Command | Purpose |
-|---|---|
-| `/agent-registry` | Show the full agent reference and assignment guidance |
-| `/start-project` | Read `project-intake.json`, validate it, assign agents, create a delivery plan |
-| `/design-doc [feature]` | Create a technical design document before non-trivial development |
-| `/handoff [from] to [to]` | Generate a structured handoff between agents |
-| `/sprint-plan [project]` | Plan and commit the next sprint from backlog items |
-| `/sprint-review [project]` | Close the current sprint and carry forward incomplete work |
-| `/change-request [project]` | Assess and decide a mid-sprint scope or requirement change |
-| `/bug-triage [project]` | Classify a defect, assign ownership, and log it in sprint tracking |
-| `/status-report [project]` | Summarize project progress, blockers, risks, and next actions |
-| `/release-checklist [name]` | Verify quality gates before production release |
-| `/retrospective [project]` | Capture lessons learned and process improvements after delivery |
+## Project State Files
 
-## Operating Rules
+Three living documents track project state. Together they answer "where are we right now?" without reading through old design docs or handoffs.
 
-Rules live in `.claude/rules/` and define how agents should work.
+### `output/{project}/SPRINT.md`
 
-| Rule File | Scope |
-|---|---|
-| `team-workflow.md` | Lifecycle, handoffs, quality gates, escalation, sprint rules |
-| `agent-coordination.md` | Assignment matrix, parallel vs sequential work, QA timing |
-| `coding-standards.md` | Output directory, naming, formatting, comments, code quality |
-| `git-workflow.md` | Branch names, conventional commits, PR expectations, release tags |
-| `security.md` | Secrets, validation, auth, headers, dependency security, logging |
-| `frontend-patterns.md` | React, TypeScript, component structure, state, forms, accessibility |
-| `api-patterns.md` | REST URL patterns, response envelopes, pagination, validation, auth |
-| `database.md` | Migrations, schema conventions, parameterized queries, ORM patterns |
+The single source of truth for sprint state. Read by all agents before making decisions. Wins over any other artifact when they conflict.
 
-## Delivery Workflow
+**Sections:**
+- Project metadata (start date, deadline, sprint length, current sprint number)
+- Current Sprint (committed items, agent assignments, status per item)
+- Backlog (all uncommitted work, including carry-forwards and deferred change requests)
+- Change Requests (CR-N log with decision and rationale)
+- Bug Log (one-line reference per bug, links to BUG-{N}.md)
+- Sprint History (completed sprints with metrics)
 
-### 1. Intake
+### `output/{project}/.tasks/{task-id}.md`
 
-Complete `project-intake.json` with enough detail for the business analyst and orchestrator to understand the project. Features should be specific enough to become user stories.
+One file per sprint task. Created by `/task-start`, updated by `/task-checkpoint`.
 
-### 2. Assignment Planning
+**Sections:**
+- Task identity (ID, agent, sprint, status)
+- Acceptance criteria (copied from sprint commitment)
+- Atomic steps with checkboxes
+- Context risk flags
+- Files this task will write
+- Checkpoints (appended per session with completed steps, file list, state, resume point)
+- Completion entry (when all steps done)
 
-Run `/start-project`. The orchestrator validates the intake, resolves the output directory, maps stack choices to agents, applies constraints, and creates a project assignment plan.
+### `output/{project}/.bugs/BUG-{N}.md`
 
-### 3. Requirements And Design
+One file per bug. Created by `/bug-triage`, updated through the lifecycle.
 
-The business analyst turns features into user stories and acceptance criteria. For non-trivial features, run `/design-doc` before implementation starts.
+**Sections:**
+- Bug identity (ID, severity, type, status, dates, assignments)
+- Reproduction steps + frequency + environment
+- Expected vs actual behaviour
+- Root cause hypothesis
+- Acceptance criteria for fix
+- Fix section (files changed, description — filled by dev agent)
+- Verification section (result, notes — filled by manual-functional-sdet)
+- Regression test section (test file, CI status — filled by automation-sdet-agent)
 
-### 4. Development
+---
 
-Assigned engineering agents build inside `output/{project-name}/`. Agents follow stack-specific rules, security standards, and coding standards.
+## Context Loading Strategy
 
-### 5. Handoff
+The framework is designed to keep context lean. Here is what loads when:
 
-Every transition between agents uses `/handoff`. A handoff must include context, completed work, pending work, risks, acceptance criteria, and next actions.
+**Every session (always-on rules):**
+- `CLAUDE.md` — 77 lines
+- `team-workflow.md` — lifecycle, gates, sprint rules, bug states
+- `agent-coordination.md` — assignment matrix
+- `coding-standards.md` — naming, task lifecycle protocol
+- `git-workflow.md` — branch and commit conventions
+- `security.md` — security non-negotiables
 
-### 6. QA
+**Only when agent is invoked:**
+- That agent's file (avg 80 lines)
+- Agent reads `SPRINT.md` and relevant TASK.md / BUG files at runtime
 
-Manual QA validates behavior against acceptance criteria. Automation QA builds repeatable regression coverage once test cases are stable.
+**Only when touching matching files:**
+- `frontend-patterns.md` — when editing `.tsx`, `.ts`, `.jsx`, `.js` files (including under `output/`)
+- `api-patterns.md` — when editing routes, controllers, handlers (including under `output/`)
+- `database.md` — when editing migrations, models, schemas, Prisma files (including under `output/`)
 
-### 7. Release
+**Only when you run the command:**
+- Any skill — loaded on demand, not in background context
 
-Run `/release-checklist` before deployment. Release requires completed development, passing tests, documentation, deployment readiness, security review where applicable, and rollback planning.
+---
 
-### 8. Retrospective
+## Extending the Framework
 
-Run `/retrospective` after delivery or sprint closure to capture lessons, agent performance notes, metrics, and framework improvements.
+### Add a New Agent
 
-## Quality Gates
+Create `.claude/agents/{name}.md`:
 
-### Before Development
+```markdown
+---
+name: "your-agent-name"
+description: "When to use this agent. Include examples with <example> tags."
+model: sonnet
+color: blue
+memory: project
+---
 
-- Requirements are clear enough to implement.
-- Acceptance criteria are written.
-- Scope and out-of-scope items are explicit.
-- Dependencies and constraints are known.
-- Required reference docs are available.
+You are the [Role] for an AI Software Delivery Team. [Description]
 
-### Before QA
+## Core Responsibilities
+...
 
-- Feature implementation is complete.
-- Relevant unit or integration tests are present.
-- Known bugs are documented.
-- Handoff includes testable acceptance criteria.
+## Bug Fix Protocol
+[Copy from any existing coding agent]
 
-### Before Release
+## Task Lifecycle
+[Copy from any existing coding agent]
 
-- Manual QA has signed off.
-- Automated regression tests pass when applicable.
-- Security rules are satisfied.
-- Deployment and rollback steps are documented.
-- Open blockers are resolved or explicitly accepted.
-
-## Sprint Tracking
-
-`/start-project` initializes `SPRINT.md` for the generated project. During active delivery, `SPRINT.md` is the source of truth for:
-
-- Current sprint scope
-- Backlog
-- Change requests
-- Bug log
-- Sprint history
-- Project status
-
-If another artifact conflicts with `SPRINT.md`, treat `SPRINT.md` as the current state.
-
-## Output Directory Rule
-
-All generated project files must go under:
-
-```text
-output/{project-name}/
+## Definition of Done
+...
 ```
 
-Examples:
+Then add to `.claude/rules/agent-coordination.md` assignment matrix.
 
-```text
-output/customer-portal/
-output/analytics-dashboard/
-output/auth-service/
+### Add a New Always-On Rule
+
+Create `.claude/rules/{topic}.md` — no frontmatter needed for unconditional rules.
+
+### Add a New Path-Scoped Rule
+
+Create `.claude/rules/{topic}.md` with paths frontmatter:
+
+```markdown
+---
+paths:
+  - "src/{your-pattern}/**"
+  - "output/**/{your-pattern}/**"
+---
 ```
 
-Do not place generated application source files in the repository root. The root stores the framework itself.
+Always include both the standard path and the `output/**` equivalent so rules trigger correctly for generated project code.
 
-## Working With Existing Codebases
+### Add a New Skill
 
-Set `context.existing_codebase` to `true` when agents are extending or integrating with an existing application. Then fill in:
+Create `.claude/skills/{name}/SKILL.md`:
 
-- `context.codebase_notes` with the stack, architecture, important directories, and known constraints
-- `context.reference_docs` with files agents should read first
-- `context.constraints` with hard rules that must be followed
+```markdown
+---
+description: When this skill should be used. This text appears in the skills registry.
+disable-model-invocation: true
+argument-hint: "[argument description]"
+---
 
-When this flag is enabled, agents should inspect existing code before writing new files.
+# Skill Name — $ARGUMENTS
 
-## Customizing The Framework
-
-### Add A New Agent
-
-Create:
-
-```text
-.claude/agents/{agent-name}.md
+## Read State (if needed)
+```
+!`cat output/$ARGUMENTS/SPRINT.md 2>/dev/null`
 ```
 
-Include frontmatter for `name`, `description`, `model`, and `color`, then define responsibilities, inputs, outputs, and definition of done.
-
-### Add A New Rule
-
-Create:
-
-```text
-.claude/rules/{topic}.md
+## Step 1 — ...
 ```
 
-Use always-on rules for global behavior. Use path-scoped rules when the rule only applies to certain file patterns or technology areas.
+Use `disable-model-invocation: true` for skills with side effects (they should only run when explicitly invoked).
 
-### Add A New Skill
+Then add to the skills table in `CLAUDE.md` and the Available Skills table in this README.
 
-Create:
+---
 
-```text
-.claude/skills/{skill-name}/SKILL.md
+## Quick Reference
+
+### Starting a project
+```
+1. Fill project-intake.json
+2. /start-project
+3. /sprint-plan {project}
+4. [For each task] /task-start {project} {task-id}
 ```
 
-Include a description and a structured workflow. Skills should produce consistent artifacts and update the correct project tracking files.
-
-### Extend The Intake Schema
-
-Update both:
-
-```text
-project-intake.schema.json
-project-intake.json
+### Ending a session mid-task
+```
+/task-checkpoint {project} {task-id}
 ```
 
-Keep schema descriptions clear so VS Code autocomplete remains useful.
-
-## Security Baseline
-
-Every agent must follow `.claude/rules/security.md`. Core requirements include:
-
-- Never commit secrets, API keys, passwords, tokens, or credentials.
-- Validate all user input server-side.
-- Use parameterized database queries.
-- Enforce authentication and authorization on protected routes.
-- Set appropriate HTTP security headers.
-- Keep dependencies patched and audited.
-- Avoid logging sensitive data.
-
-For projects handling PII, financial data, healthcare data, or regulated workflows, set:
-
-```json
-"security_level": "high"
+### Starting a new session on existing task
+```
+/task-resume {project} {task-id}
 ```
 
-## Git Workflow
+### Something changed mid-sprint
+```
+/change-request {project}
+```
 
-The framework expects:
+### Bug found
+```
+/bug-triage {project}
+```
 
-- One feature or fix per branch.
-- Conventional commit messages.
-- Pull requests with clear what, why, how, and testing sections.
-- No self-merges on protected branches.
-- Squash merges for feature and fix branches.
-- Release tags using semantic versioning.
+### Verifying a bug fix
+```
+/bug-verify {project} BUG-{N}
+```
 
-See `.claude/rules/git-workflow.md` for the full policy.
+### End of sprint
+```
+/sprint-review {project}
+/sprint-plan {project}    ← start next sprint
+```
 
-## Troubleshooting
-
-| Problem | Fix |
-|---|---|
-| VS Code does not autocomplete `project-intake.json` | Confirm `.vscode/settings.json` points to `./project-intake.schema.json` |
-| `/start-project` reports missing fields | Fill all required schema fields, especially `project.name`, `project.description`, `project.type`, `requirements.features`, and `timeline.deadline` |
-| Generated files appear in the repo root | Move them under `output/{project-name}/` and reinforce the output directory rule |
-| Wrong agents are assigned | Use `team.agents_needed` or `team.skip_agents` in `project-intake.json` |
-| Scope keeps expanding | Add explicit exclusions to `requirements.out_of_scope` and use `/change-request` for mid-sprint changes |
-| QA starts too late | Engage `manual-functional-sdet` once acceptance criteria are stable and `automation-sdet-agent` when regression cases are repeatable |
-
-## Maintenance Checklist
-
-Use this checklist when changing the framework:
-
-- Agent descriptions are updated in `.claude/agents/`.
-- Command behavior is updated in `.claude/skills/`.
-- Always-on standards are updated in `.claude/rules/`.
-- Intake changes are reflected in both `project-intake.json` and `project-intake.schema.json`.
-- `README.md` and `CLAUDE.md` remain consistent.
-- Generated app code stays under `output/{project-name}/`.
+### Ready to release
+```
+/release-checklist {project}
+/retrospective {project}
+```

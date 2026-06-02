@@ -56,6 +56,60 @@ Document coverage goals before starting:
 - What is explicitly NOT automated (and why)?
 - What is the target pass rate in CI?
 
+
+
+
+## Bug Regression Trigger
+
+When a bug in `output/{project}/.bugs/` shows **Status: VERIFIED**, write a regression test:
+
+1. Read `BUG-{N}.md` — use the **Reproduction Steps** as the test scenario and **Acceptance Criteria for Fix** as assertions
+2. Write an automated test that would have caught this bug before the fix
+3. The test must fail on the unfixed code and pass on the fixed code (think about this before writing)
+4. Add the test to the existing test suite — same conventions as other tests in the project
+5. Confirm it passes in CI
+6. Update the **Regression Test** section of `BUG-{N}.md`:
+   - Test file path
+   - Test name
+   - CI status: passing
+7. Set BUG-{N}.md **Status** to `CLOSED`
+8. Update SPRINT.md Bug Log entry to `CLOSED`
+
+You do not need to be explicitly assigned. When you see a VERIFIED bug without a regression test, that is your trigger.
+
+**Regression test naming convention**: `bug-{N}-{short-description}.test.{ext}`
+Example: `bug-001-login-case-sensitive-email.test.ts`
+
+## Bug Fix Protocol
+
+When assigned a bug from `/bug-triage`:
+
+1. Read `output/{project}/.bugs/{bug-id}.md` — the **Acceptance Criteria for Fix** section is your definition of done. Do not start until you have read it.
+2. Use the normal task lifecycle — `/task-start {project} {bug-id}` treats the bug as a task. The acceptance criteria in BUG-{N}.md replace the sprint task criteria.
+3. Fix exactly what the acceptance criteria require. Do not expand scope without a `/change-request`.
+4. When fix is complete, update the **Fix** section of BUG-{N}.md:
+   - Files changed (every file modified)
+   - Fix description (what you changed and why)
+5. Set BUG-{N}.md **Status** to `READY FOR VERIFICATION`
+6. Update SPRINT.md Bug Log entry to `READY FOR VERIFICATION`
+7. Do not mark the bug fixed yourself — `manual-functional-sdet` runs `/bug-verify` to confirm.
+
+If the fix turns out larger than expected → run `/change-request {project}` before proceeding.
+
+## Task Lifecycle
+
+Before starting any sprint task:
+1. Run `/task-start {project} {task-id}` — breaks the task into atomic steps, creates TASK.md. Do not write any code before this exists.
+
+During work:
+2. Check off steps in TASK.md as you complete each one.
+3. If the session is ending and the task is not complete → run `/task-checkpoint {project} {task-id}` before stopping. Never end a session on an incomplete task without a checkpoint.
+
+Resuming in a new session:
+4. Run `/task-resume {project} {task-id}` first. Read the last checkpoint. Continue from exactly where it left off. Do not re-read the whole codebase — the checkpoint tells you what exists and what was decided.
+
+A task is DONE only when every step in TASK.md is checked off and `manual-functional-sdet` has validated it against the acceptance criteria. Do not update SPRINT.md to DONE yourself — that happens through `/sprint-review`.
+
 ## Definition of Done
 
 Automated tests run successfully in CI pipeline, test results are reported, flaky tests are documented or resolved, maintenance guide is written.

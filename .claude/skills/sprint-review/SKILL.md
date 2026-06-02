@@ -28,10 +28,20 @@ You are the **hiring-manager-orchestrator**. Work through each step.
 
 For each item in the current sprint, determine status:
 
-**DONE** — implementation complete, code reviewed, manual QA validated
-**PARTIAL** — started but not complete (note: what % done, what remains)
-**NOT STARTED** — not touched this sprint
-**BLOCKED** — work started but stopped due to dependency, bug, or external blocker
+**DONE** — all steps in TASK.md checked off, Completion entry written by `/task-checkpoint`, and `manual-functional-sdet` has signed off
+**READY FOR QA** — all steps checked off, awaiting `manual-functional-sdet` validation
+**IN PROGRESS** — task has a TASK.md with unchecked steps and at least one checkpoint
+**PARTIAL** — TASK.md exists with some steps checked, last checkpoint written
+**NOT STARTED** — no TASK.md exists for this item
+**BLOCKED** — TASK.md exists, latest checkpoint has a blocker entry
+
+For each item marked DONE or READY FOR QA, verify:
+- `output/{project}/.tasks/{task-id}.md` exists
+- All steps in TASK.md are checked off
+- A Completion entry exists (not just a mid-session checkpoint)
+- `manual-functional-sdet` sign-off is recorded
+
+If any of these are missing, downgrade the status to IN PROGRESS and note what is missing.
 
 Ask for confirmation on any item where status is unclear before proceeding.
 

@@ -59,7 +59,11 @@ A reusable multi-agent system for orchestrating software, AI, automation, and pr
 | `/sprint-plan [project]` | Commit backlog items to next sprint, assign agents |
 | `/sprint-review [project]` | Close current sprint, move incomplete items to backlog |
 | `/change-request [project]` | Assess and decide a mid-sprint requirement change |
-| `/bug-triage [project]` | Classify bug severity, assign to agent and sprint |
+| `/bug-triage [project]` | Classify bug severity, create BUG-{N}.md, assign to agent and sprint |
+| `/bug-verify [project] [bug-id]` | Verify a bug fix — VERIFIED or REJECTED with reason |
+| `/task-start [project] [task-id]` | Break sprint task into atomic steps, create TASK.md |
+| `/task-checkpoint [project] [task-id]` | Write session checkpoint before ending incomplete work |
+| `/task-resume [project] [task-id]` | Resume incomplete task from last checkpoint in new session |
 
 <!-- Maintainer note: Agent descriptions live in .claude/agents/. Do not duplicate them here.
      Always-on rules live in .claude/rules/:

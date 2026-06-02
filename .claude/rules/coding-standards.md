@@ -72,3 +72,26 @@ All generated project code MUST be saved under `output/{project-name}/`.
 - **Max line length**: 100 characters.
 - **Formatter**: Prettier (TS/JS), Black (Python). Auto-format before commit.
 - **Trailing commas**: always in multi-line TypeScript/JavaScript.
+
+## Task Lifecycle Protocol
+
+This protocol applies to every coding agent on every sprint task. It is not optional.
+
+```
+/task-start {project} {task-id}        ← before writing any code
+  [work through atomic steps]
+  [check off each step in TASK.md]
+/task-checkpoint {project} {task-id}   ← before ending an incomplete session
+  [new session]
+/task-resume {project} {task-id}       ← first thing in a new session on an existing task
+  [continue from checkpoint]
+/task-checkpoint {project} {task-id}   ← when all steps done → writes completion entry
+```
+
+**Rules:**
+- No code is written before `/task-start` creates TASK.md
+- No session ends on an incomplete task without `/task-checkpoint`
+- No session starts on an existing task without `/task-resume`
+- Tasks live at `output/{project}/.tasks/{task-id}.md`
+- Maximum 10 atomic steps per task — if you need more, the task is too large, flag to orchestrator
+- Each atomic step produces exactly one verifiable artifact

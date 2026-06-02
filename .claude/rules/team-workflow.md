@@ -101,3 +101,41 @@ Security vulnerabilities and data loss bugs are always Critical regardless of sc
 
 ### Artifact Authority
 When multiple documents exist (design doc, handoff, status report, SPRINT.md), **SPRINT.md is always the most current state**. If SPRINT.md contradicts a design doc or handoff, SPRINT.md wins. Stale artifacts should be noted in SPRINT.md but not deleted.
+
+## Task Checkpoint Quality Gate
+
+A sprint task moves from `IN PROGRESS` to `DONE` only when:
+1. All steps in `output/{project}/.tasks/{task-id}.md` are checked off
+2. `/task-checkpoint` has written a Completion entry (not just a mid-session checkpoint)
+3. `manual-functional-sdet` has read the TASK.md completion entry and validated against acceptance criteria
+4. `manual-functional-sdet` has updated the task status to `DONE` in TASK.md
+
+An agent self-reporting "done" without a TASK.md completion entry is not done.
+A `/sprint-review` must verify TASK.md completion status for every committed item before closing a sprint.
+
+### Checkpoint Frequency Rule
+Any session working on a sprint task that ends without completing the task **must** run `/task-checkpoint` before the session closes. A task with no checkpoint after 2+ sessions is a signal the task is too large — flag to orchestrator for splitting.
+
+## Bug Lifecycle States
+
+Every bug moves through these states in `BUG-{N}.md`. No skipping.
+
+```
+OPEN → IN FIX → READY FOR VERIFICATION → VERIFIED → CLOSED
+              ↑                        |
+              └──── REJECTED ──────────┘
+```
+
+| State | Set by | Meaning |
+|---|---|---|
+| `OPEN` | `/bug-triage` | Bug documented, assigned, not yet being fixed |
+| `IN FIX` | Dev agent (via `/task-start`) | Dev agent is actively working the fix |
+| `READY FOR VERIFICATION` | Dev agent | Fix complete, awaiting manual-functional-sdet |
+| `REJECTED` | `/bug-verify` | Fix failed verification, returned to dev agent |
+| `VERIFIED` | `/bug-verify` | Fix confirmed, awaiting regression test |
+| `CLOSED` | automation-sdet-agent | Regression test written and passing in CI |
+
+**A bug is not fixed until CLOSED. VERIFIED means the fix works but recurrence is not yet prevented.**
+
+Bug files live at `output/{project}/.bugs/BUG-{N}.md`.
+SPRINT.md Bug Log holds one-line references only — always read BUG-{N}.md for full state.

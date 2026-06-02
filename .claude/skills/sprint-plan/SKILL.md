@@ -100,3 +100,13 @@ Do not modify Sprint History or Change Requests sections.
 Do not remove unclaimed backlog items.
 
 Confirm: `✅ Sprint {N} committed. {count} items assigned across {agent count} agents. Run /status-report {project-name} to track progress.`
+
+**Remind all assigned agents:**
+```
+For each task assigned to you this sprint:
+1. Run /task-start {project} {task-id} before writing any code
+2. Run /task-checkpoint {project} {task-id} before ending any incomplete session
+3. Run /task-resume {project} {task-id} at the start of any new session on existing work
+
+Tasks live at output/{project}/.tasks/{task-id}.md
+```

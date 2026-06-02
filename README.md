@@ -96,6 +96,7 @@ your-project/
 │       ├── task-start/                ← /task-start
 │       ├── task-checkpoint/           ← /task-checkpoint
 │       ├── task-resume/               ← /task-resume
+│       ├── code-review/               ← /code-review
 │       ├── release-checklist/         ← /release-checklist
 │       ├── status-report/             ← /status-report
 │       └── retrospective/             ← /retrospective
@@ -177,8 +178,8 @@ Path-scoped rules include both standard paths (`src/**`) and output paths (`outp
 
 | Agent | Model | Role |
 |---|---|---|
-| `manual-functional-sdet` | Sonnet | Manual testing, bug documentation, fix verification, QA sign-off |
-| `automation-sdet-agent` | Sonnet | Automated test suites, CI integration, regression tests for verified bugs |
+| `manual-functional-sdet` | Sonnet | Manual testing, bug documentation, fix verification, QA sign-off. Sets `REWORK` on rejected tasks with exact defects. Marks qualifying test cases `AUTOMATION READY` for self-handoff to automation agent. |
+| `automation-sdet-agent` | Sonnet | Automated test suites, CI integration, regression tests for verified bugs. Self-triggers from `AUTOMATION READY` tags in manual QA notes — no orchestrator assignment needed. |
 
 ### Assignment Decision Matrix
 
@@ -210,7 +211,7 @@ Path-scoped rules include both standard paths (`src/**`) and output paths (`outp
 
 **`agent-coordination.md`** — Assignment matrix, self-limitation rules, parallel vs sequential work guidance, QA timing rules.
 
-**`coding-standards.md`** — Naming conventions for TypeScript/JavaScript/Python/database, strict TypeScript rules, file and function length limits, comment standards, formatter config, and the mandatory task lifecycle protocol (task-start → checkpoint → resume).
+**`coding-standards.md`** — Naming conventions for TypeScript/JavaScript/Python/database, strict TypeScript rules, file and function length limits, comment standards, formatter config, the code review process (what "code-reviewed" means, automated checks, reviewer ownership), and the mandatory task lifecycle protocol (task-start → checkpoint → code-review → checkpoint completion → QA).
 
 **`git-workflow.md`** — Branch naming (`feature/`, `fix/`, `chore/`, `docs/`, `refactor/`), Conventional Commits format with all types, PR description template, PR size limits (400 target / 800 hard), review rules, merge strategy, semver tagging.
 
@@ -366,7 +367,13 @@ Classifies severity, assigns owner agent, creates `output/customer-portal/.bugs/
 
 ### Step 7 — QA and Bug Resolution
 
-When a task is ready for QA, `manual-functional-sdet` reads `.tasks/{task-id}.md` to verify all steps are checked off, then tests against acceptance criteria.
+When a task is complete, the dev agent runs `/code-review` first. Once APPROVED, they run `/task-checkpoint` completion flow to set the task to `READY FOR QA`.
+
+`manual-functional-sdet` reads `.tasks/{task-id}.md` and verifies:
+1. All steps are checked off
+2. Code review APPROVED is recorded in the Completion entry
+
+If either check fails, the task is returned to `REWORK` status with exact defects documented.
 
 When a dev agent completes a bug fix:
 1. Updates `BUG-{N}.md` Fix section with files changed and description
@@ -375,7 +382,9 @@ When a dev agent completes a bug fix:
 ```
 /bug-verify customer-portal BUG-001
 ```
-`manual-functional-sdet` re-runs reproduction steps and validates acceptance criteria. Result is **VERIFIED** or **REJECTED** with exact reason. On VERIFIED, `automation-sdet-agent` writes a regression test and marks the bug **CLOSED**.
+`manual-functional-sdet` re-runs reproduction steps and validates acceptance criteria. Result is **VERIFIED** or **REJECTED** with exact reason. On VERIFIED, `automation-sdet-agent` picks up the test case and writes a regression test, marking the bug **CLOSED**.
+
+`automation-sdet-agent` also self-triggers from manual QA notes: test cases marked `AUTOMATION READY` are picked up without waiting for orchestrator assignment.
 
 ### Step 8 — Sprint Review
 
@@ -432,49 +441,73 @@ Covers: delivery summary vs planned scope, timeline variance, What Went Well / W
 - New work never enters an active sprint without a `/change-request` decision
 - `SPRINT.md` is the single source of truth — wins over all other artifacts
 - Incomplete items return to backlog at review — never auto-carry silently
+- BLOCKED and ON_HOLD tasks require an explicit orchestrator decision at sprint review — never silently carried
 - `manual-functional-sdet` removal from `skip_agents` is blocked — QA is mandatory
+
+**Change control authority:**
+- Trivial/Small changes: orchestrator decides alone, same session
+- Medium changes: orchestrator + product owner must agree; auto-defer if PO unavailable
+- Large/Breaking changes: orchestrator + product owner required; sprint may pause for replanning
+- Affected tasks move to `ON_HOLD` during Medium/Large change review; orchestrator releases the hold after decision
 
 ---
 
 ## Task Lifecycle
 
-Every sprint task and bug fix follows the same three-command protocol:
+Every sprint task and bug fix follows the same protocol:
 
 ```
 ┌─────────────────────────────────────────────────────────────┐
 │  /task-start {project} {task-id}                             │
 │  → Reads sprint task details                                 │
 │  → Forces atomic step decomposition (max 10 steps)          │
-│  → Each step produces exactly one verifiable artifact        │
 │  → Creates output/{project}/.tasks/{task-id}.md              │
-│  → Begins Step 1 immediately                                 │
+│  → Status: IN PROGRESS                                       │
 └──────────────────────┬──────────────────────────────────────┘
                        │
               [Agent works through steps]
               [Checks off each step in TASK.md]
                        │
-              ┌────────┴────────┐
-              │                 │
-       Task complete?      Session ending?
-              │                 │
-              ▼                 ▼
-    /task-checkpoint    /task-checkpoint
-    (Completion entry)  (Mid-session checkpoint)
-    Status → READY           │
-    FOR QA                   │
-                        [New session]
-                             │
-                             ▼
-                    /task-resume {project} {task-id}
-                    → Reads last checkpoint
-                    → Shows exactly what's done, what's next
-                    → Lists files that exist
-                    → Continues from step N
+         ┌─────────────┼──────────────┐
+         │             │              │
+    Hit blocker?  Session ending? All steps done?
+         │             │              │
+         ▼             ▼              ▼
+  /task-checkpoint  /task-checkpoint  /code-review
+  [BLOCKED flow]    [Standard flow]   → APPROVED?
+  Status: BLOCKED        │                │
+                    [New session]    /task-checkpoint
+                         │          [Completion flow]
+                         ▼          Status: READY FOR QA
+                  /task-resume            │
+                  → Checks state          ▼
+                  → BLOCKED?      manual-functional-sdet
+                    (verify        validates TASK.md +
+                     blocker       code review record
+                     resolved)          │
+                  → REWORK?        ┌────┴────┐
+                    (read QA       │         │
+                     defects)    DONE      REWORK
+                  → ON_HOLD?    (sign-off) (set by QA
+                    (STOP —                 with defects)
+                     contact
+                     orchestrator)
 ```
 
-**Atomic step rule:** A step must produce one verifiable artifact — a file, a passing test, a working endpoint. If you cannot verify completion by reading 1-2 files, the step is too big.
+**Task state machine:**
 
-**Task is DONE only when:** all steps checked off + `manual-functional-sdet` sign-off. An agent self-reporting done is not done.
+| State | Who Sets It | Meaning |
+|---|---|---|
+| `IN PROGRESS` | Dev agent | Actively being worked |
+| `BLOCKED` | Dev agent | Waiting on an external dependency — blocker and owner documented |
+| `REWORK` | `manual-functional-sdet` | QA rejected — specific defects must be fixed |
+| `ON_HOLD` | Orchestrator only | Deliberately paused — only orchestrator releases this |
+| `READY FOR QA` | Dev agent (completion flow) | All steps done, code review APPROVED |
+| `DONE` | `manual-functional-sdet` | QA signed off |
+
+**Atomic step rule:** A step must produce one verifiable artifact — a file, a passing test, a working endpoint.
+
+**Task is DONE only when:** all steps checked off + code review APPROVED + `manual-functional-sdet` sign-off. An agent self-reporting done is not done.
 
 ---
 
@@ -533,20 +566,21 @@ Dev agent reads BUG-{N}.md acceptance criteria
 
 | Command | Agent | Purpose |
 |---|---|---|
-| `/agent-registry` | Any | Full agent reference with capabilities and assignment matrix |
-| `/start-project` | Orchestrator | Read intake, validate, assign agents, create SPRINT.md |
-| `/design-doc [feature]` | Lead engineer | Technical design doc before development begins |
-| `/handoff [from] to [to]` | Any | Structured handoff document between agents |
+| `/agent-registry` | Any | Full agent reference with capabilities, triggers, and assignment decision matrix |
+| `/start-project` | Orchestrator | Validate intake, map stack to agents, produce delivery plan, initialize SPRINT.md |
+| `/design-doc [feature]` | Lead engineer | Technical design doc before development — problem, solution, API contract, risks, testing plan |
+| `/handoff [from] to [to]` | Any | Structured handoff covering completed work, pending work, acceptance criteria, and next actions |
 | `/sprint-plan [project]` | Orchestrator | Commit backlog items to next sprint |
-| `/sprint-review [project]` | Orchestrator | Close sprint, verify TASK.md completion, move carry-forward |
-| `/change-request [project]` | Orchestrator | Assess mid-sprint requirement change: Absorb/Defer/Reject |
+| `/sprint-review [project]` | Orchestrator | Close sprint, verify TASK.md completion, explicitly decide BLOCKED/ON_HOLD items |
+| `/change-request [project]` | Orchestrator | Assess mid-sprint requirement change with authority and SLA rules; sets ON_HOLD where needed |
 | `/bug-triage [project]` | Orchestrator + SDET | Classify bug, create BUG-{N}.md, assign |
 | `/bug-verify [project] [bug-id]` | manual-functional-sdet | Verify fix: VERIFIED or REJECTED |
-| `/task-start [project] [task-id]` | Dev agent | Break task into atomic steps, create TASK.md |
-| `/task-checkpoint [project] [task-id]` | Dev agent | Write session checkpoint before ending |
-| `/task-resume [project] [task-id]` | Dev agent | Resume from last checkpoint in new session |
-| `/status-report [project]` | Orchestrator | Progress across all agents and sprint items |
-| `/release-checklist [project]` | Orchestrator | Pre-release GO/NO-GO gate |
+| `/task-start [project] [task-id]` | Dev agent | Break task into atomic steps, create TASK.md with Status IN PROGRESS |
+| `/task-checkpoint [project] [task-id]` | Dev agent | Write session checkpoint — standard, BLOCKED, or REWORK flows |
+| `/task-resume [project] [task-id]` | Dev agent | Resume task — checks state (IN PROGRESS / BLOCKED / REWORK / ON_HOLD) |
+| `/code-review [project] [task-id]` | Dev agent | Structured code review — APPROVED or CHANGES REQUESTED; required before READY FOR QA |
+| `/status-report [project]` | Orchestrator | Reads SPRINT.md and produces per-agent progress, blockers, risks, and decisions needed |
+| `/release-checklist [project]` | Orchestrator | Validates sprint state then runs pre-release gate — GO / NO-GO / CONDITIONAL GO |
 | `/retrospective [project]` | Orchestrator | Post-delivery review with action items |
 
 ---
@@ -709,14 +743,20 @@ Then add to the skills table in `CLAUDE.md` and the Available Skills table in th
 4. [For each task] /task-start {project} {task-id}
 ```
 
+### Completing a task (all steps done)
+```
+/code-review {project} {task-id}           ← must be APPROVED first
+/task-checkpoint {project} {task-id}       ← writes Completion entry, sets READY FOR QA
+```
+
 ### Ending a session mid-task
 ```
-/task-checkpoint {project} {task-id}
+/task-checkpoint {project} {task-id}       ← standard, BLOCKED, or REWORK flow
 ```
 
 ### Starting a new session on existing task
 ```
-/task-resume {project} {task-id}
+/task-resume {project} {task-id}           ← checks state: IN PROGRESS / BLOCKED / REWORK / ON_HOLD
 ```
 
 ### Something changed mid-sprint

@@ -1,12 +1,21 @@
 ---
-description: Generate a project status report. Use when providing a progress update on an active project.
+name: status-report
+description: Generate a structured project status report for an active project. Use when a progress update is needed — weekly, before a stakeholder check-in, or when the orchestrator needs a snapshot of all work streams. Reads SPRINT.md and task/bug state for [project-name] from $ARGUMENTS. Produces a report covering overall status, per-agent progress, milestone tracker, blockers, risks, and decisions needed.
 disable-model-invocation: true
-argument-hint: "[project name]"
+argument-hint: "[project-name]"
 ---
 
 # Project Status Report: $ARGUMENTS
 
-Generate a structured status report covering all active agents and work streams.
+## Read Current State
+
+```
+!`cat output/$ARGUMENTS/SPRINT.md 2>/dev/null || echo "ERROR: output/$ARGUMENTS/SPRINT.md not found. Check project name."`
+```
+
+---
+
+Generate a structured status report covering all active agents and work streams. Use the SPRINT.md state above to populate sprint progress, committed items, blocked tasks, and bugs.
 
 ## Status Report
 

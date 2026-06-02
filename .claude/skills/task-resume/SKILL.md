@@ -1,4 +1,5 @@
 ---
+name: task-resume
 description: Resume an incomplete task in a new session. Reads the last checkpoint from TASK.md and orients the agent to continue from exactly where the previous session ended. Always run this first when continuing work on an existing task.
 disable-model-invocation: true
 argument-hint: "[project-name] [task-id]"
@@ -21,10 +22,60 @@ You are the agent resuming this task. Orient completely from TASK.md before writ
 ## Step 1 — Validate
 
 - TASK.md must exist. If not → `❌ No TASK.md found. Was /task-start run? Check output/{project}/.tasks/`
-- Task status must be `IN PROGRESS`. If status is:
-  - `READY FOR QA` → `✅ This task is already complete. Waiting for manual-functional-sdet sign-off.`
+- Check the current Status field:
+  - `IN PROGRESS` → proceed normally to Step 2
+  - `READY FOR QA` → `✅ This task is already complete. Waiting for manual-functional-sdet sign-off. No work to resume.`
   - `DONE` → `✅ This task is closed. Check SPRINT.md for next assignment.`
-  - `BLOCKED` → `⚠️ This task is blocked. Read the blocker note in the latest checkpoint and resolve before continuing.`
+  - `ON_HOLD` → `🛑 This task is ON_HOLD — set by the orchestrator. You must NOT work on it. Contact hiring-manager-orchestrator to find out when the hold will be released and what the condition is.`
+  - `BLOCKED` → run the BLOCKED resume flow (Step 1B below) before proceeding
+  - `REWORK` → run the REWORK resume flow (Step 1C below) before proceeding
+
+### Step 1B — BLOCKED Resume Flow
+
+Read the latest BLOCKED checkpoint entry in TASK.md.
+
+Check whether the blocker condition described in that entry has been resolved:
+
+- **If the blocker is NOT yet resolved** → `⚠️ Task {task-id} is still BLOCKED. Blocker: {description from checkpoint}. Owner: {owner}. Do not start work — the dependency is unresolved. Check back when the blocker owner confirms resolution.`
+
+- **If the blocker IS resolved** → update the Status field in TASK.md from `BLOCKED` to `IN PROGRESS` and append a note to the latest checkpoint:
+  ```
+  **Blocker resolved**: {today} — {brief description of how it was resolved}
+  ```
+  Then proceed to Step 2 using the "Context needed to resume after unblocking" from the BLOCKED checkpoint.
+
+### Step 1C — REWORK Resume Flow
+
+Read the latest REWORK checkpoint entry in TASK.md to understand what QA rejected.
+
+Output a REWORK brief before starting:
+
+```
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+REWORK: {task-id} — {task description}
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+QA REJECTION REASON:
+  {copied from REWORK checkpoint}
+
+DEFECTS TO FIX:
+  {list of defects and which steps they affect}
+
+STEPS THAT NEED REWORK:
+  {list of affected step numbers}
+
+STEPS THAT ARE STILL VALID:
+  {list of unaffected step numbers — do not re-implement these}
+
+FILES TO MODIFY:
+  {list from REWORK checkpoint}
+
+STARTING WITH:
+  {first defect to address}
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+```
+
+Update the Status field in TASK.md from `REWORK` to `IN PROGRESS`. Then proceed directly to fixing the first defect.
 
 ---
 

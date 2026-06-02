@@ -1,5 +1,6 @@
 ---
-description: Start a sprint task. Breaks it into atomic steps and creates TASK.md before any code is written. Must be run before touching any files for a new task. Use at the beginning of every sprint task session.
+name: task-start
+description: Break a sprint task into atomic steps and create TASK.md before any code is written. Run at the very start of every sprint task — before touching any files. Reads the task from SPRINT.md using [project-name] and [task-id] from $ARGUMENTS. Creates output/{project}/.tasks/{task-id}.md with Status IN PROGRESS and begins Step 1 immediately.
 disable-model-invocation: true
 argument-hint: "[project-name] [task-id]"
 ---
@@ -81,6 +82,9 @@ Create `output/{project}/.tasks/{task-id}.md`:
 **Sprint**: {sprint number}
 **Status**: IN PROGRESS
 **Created**: {today}
+
+<!-- Valid status values: IN PROGRESS | BLOCKED | REWORK | ON_HOLD | READY FOR QA | DONE
+     Transitions: see .claude/rules/team-workflow.md Task State Machine -->
 
 ## Acceptance Criteria
 {copied from SPRINT.md — these are what QA will verify}

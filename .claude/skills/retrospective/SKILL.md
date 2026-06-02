@@ -1,4 +1,5 @@
 ---
+name: retrospective
 description: Run a project retrospective after delivery. Use after every project or sprint to capture learnings and drive continuous improvement.
 disable-model-invocation: true
 argument-hint: "[project or sprint name]"

@@ -1,4 +1,5 @@
 ---
+name: bug-triage
 description: Triage a bug discovered during development or QA. Classifies severity, assigns to the correct agent and sprint, creates BUG-{N}.md as the living bug document, and logs a reference in SPRINT.md. Use for any defect found during delivery — not just QA bugs.
 disable-model-invocation: true
 argument-hint: "[project-name]"
@@ -89,80 +90,15 @@ Override: if fixing requires reworking an already QA-verified item → run `/cha
 
 ## Step 6 — Create BUG-{N}.md
 
-Create `output/{project}/.bugs/BUG-{N}.md`:
-
-```markdown
-# BUG-{N} — {short descriptive title}
-
-**Status**: OPEN
-**Severity**: {Critical / High / Medium / Low}
-**Type**: {Functional / Security / Performance / UI / Data}
-**Project**: {project}
-**Sprint at discovery**: Sprint {N}
-**Found by**: {agent or stakeholder}
-**Assigned to**: {dev agent}
-**Date**: {today}
-
----
-
-## Reproduction Steps
-
-1. {exact step}
-2. {exact step}
-3. ...
-
-**Frequency**: Always / Intermittent / Once
-**Environment**: {browser, OS, env — fill in if known}
-
-## Expected Behaviour
-{what should happen}
-
-## Actual Behaviour
-{what actually happens}
-
-## Root Cause Hypothesis
-{initial guess — assigned agent will confirm or revise}
-
----
-
-## Acceptance Criteria for Fix
-
-- [ ] {specific condition that confirms the bug is gone}
-- [ ] {specific condition for adjacent behaviour that must not regress}
-- [ ] Regression test added by automation-sdet-agent
-
----
-
-## Fix
-
-**Status**: Not started
-**Agent**: {assigned dev agent}
-**Start**: Use `/task-start {project} BUG-{N}` — treat this as a task, acceptance criteria above are your DoD
-**Files changed**: (filled in when fix is complete)
-**Fix description**: (filled in when fix is complete)
-
----
-
-## Verification
-
-**Status**: Pending fix completion
-**Agent**: manual-functional-sdet
-**Skill**: `/bug-verify {project} BUG-{N}` when fix is READY FOR VERIFICATION
-**Date verified**: 
-**Result**: VERIFIED / REJECTED
-**Notes**: 
-
----
-
-## Regression Test
-
-**Status**: Pending verification
-**Agent**: automation-sdet-agent
-**Triggered by**: BUG-{N}.md status moving to VERIFIED
-**Test file**: 
-**Test name**: 
-**CI status**: 
-```
+Create `output/{project}/.bugs/BUG-{N}.md` using the template at `assets/bug-template.md`. Fill in all `{placeholder}` values from the bug details collected in Steps 1–5:
+- `{N}` — bug number from Step 2
+- `{short descriptive title}` — clear one-line description of the defect
+- `{Critical / High / Medium / Low}` — severity from Step 3
+- `{Functional / Security / Performance / UI / Data}` — type based on bug location
+- `{project}` — project name from $ARGUMENTS
+- `{dev agent}` — assigned owner from Step 4
+- All reproduction steps, frequency, environment, expected/actual behaviour — from Step 1
+- Sprint number — from current SPRINT.md state
 
 ---
 

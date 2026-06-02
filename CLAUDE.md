@@ -49,21 +49,22 @@ A reusable multi-agent system for orchestrating software, AI, automation, and pr
 
 | Command | Purpose |
 |---|---|
-| `/agent-registry` | Full agent reference with assignment decision matrix |
-| `/start-project [description]` | Kick off a new project with orchestrator assignment planning |
-| `/design-doc [feature name]` | Technical design document — run before development begins |
-| `/handoff [from] to [to]` | Generate structured handoff between agents |
-| `/release-checklist [name]` | Pre-release quality gate verification |
-| `/status-report [project]` | Project status summary across all active agents |
+| `/agent-registry` | Full agent reference with assignment decision matrix and trigger conditions |
+| `/start-project [description]` | Kick off a new project — validates intake, maps stack to agents, initializes SPRINT.md |
+| `/design-doc [feature name]` | Technical design document — run before development begins on any non-trivial feature |
+| `/handoff [from] to [to]` | Structured handoff covering completed work, pending work, risks, and next actions |
+| `/release-checklist [name]` | Pre-release quality gate — validates sprint state and produces GO / NO-GO decision |
+| `/status-report [project]` | Project status snapshot — reads SPRINT.md and produces per-agent progress report |
 | `/retrospective [project]` | Post-delivery retrospective with action items |
 | `/sprint-plan [project]` | Commit backlog items to next sprint, assign agents |
 | `/sprint-review [project]` | Close current sprint, move incomplete items to backlog |
-| `/change-request [project]` | Assess and decide a mid-sprint requirement change |
+| `/change-request [project]` | Assess and decide a mid-sprint requirement change — enforces authority and SLA rules |
 | `/bug-triage [project]` | Classify bug severity, create BUG-{N}.md, assign to agent and sprint |
 | `/bug-verify [project] [bug-id]` | Verify a bug fix — VERIFIED or REJECTED with reason |
-| `/task-start [project] [task-id]` | Break sprint task into atomic steps, create TASK.md |
-| `/task-checkpoint [project] [task-id]` | Write session checkpoint before ending incomplete work |
-| `/task-resume [project] [task-id]` | Resume incomplete task from last checkpoint in new session |
+| `/task-start [project] [task-id]` | Break sprint task into atomic steps, create TASK.md with Status IN PROGRESS |
+| `/task-checkpoint [project] [task-id]` | Write session checkpoint — handles IN PROGRESS, BLOCKED, and REWORK flows |
+| `/task-resume [project] [task-id]` | Resume task — checks state and handles BLOCKED, REWORK, and ON_HOLD correctly |
+| `/code-review [project] [task-id]` | Structured code review before QA — APPROVED or CHANGES REQUESTED |
 
 <!-- Maintainer note: Agent descriptions live in .claude/agents/. Do not duplicate them here.
      Always-on rules live in .claude/rules/:

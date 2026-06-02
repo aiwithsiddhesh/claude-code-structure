@@ -1,4 +1,5 @@
 ---
+name: change-request
 description: Assess and decide a requirement change mid-sprint. Use whenever a stakeholder requests a new feature, a requirement changes, or scope needs to shift after a sprint has started. Appends decision to SPRINT.md.
 disable-model-invocation: true
 argument-hint: "[project-name]"
@@ -55,9 +56,39 @@ Also assess: does this change conflict with any rule in `.claude/rules/` or any 
 
 ---
 
-## Step 4 — Decision
+## Step 4 — Decision Authority and SLA
 
-Based on size and impact, recommend one of three decisions:
+Before making a decision, verify the authority requirements for this change size:
+
+| Change Size | Required Decision-Makers | If Unavailable |
+|---|---|---|
+| Trivial / Small | Orchestrator alone — decide this session | N/A |
+| Medium | Orchestrator + product owner must agree | If product owner unavailable this sprint → auto-defer |
+| Large / Breaking | Orchestrator + product owner required | Sprint may need to pause; replan via `/sprint-plan` after decision |
+| Reject (any size) | Orchestrator alone | Record reason in SPRINT.md with enough detail requestor understands why |
+
+**Response time SLA** — classify the impact level of this change:
+
+| Impact Level | Definition | SLA |
+|---|---|---|
+| Critical | Would block current sprint delivery | Decide before any agent continues on affected tasks — this session |
+| High | Affects 2+ committed sprint items | Decide within current sprint — cannot carry into next sprint undecided |
+| Medium | Affects 1 committed item | Decide by end of current sprint |
+| Low | Does not affect any committed item | May defer to next `/sprint-plan` — must be recorded in backlog |
+
+**In-progress work rules during review:**
+
+| Change Size | Action on In-Progress Work |
+|---|---|
+| Trivial / Small | Work continues uninterrupted |
+| Medium | Move affected tasks to `ON_HOLD` status immediately — orchestrator sets the hold |
+| Large / Breaking | Move ALL dependent tasks to `ON_HOLD` immediately |
+
+If any tasks need to be set to `ON_HOLD`, list them explicitly and instruct the agent(s) to update their TASK.md Status field before this session ends.
+
+---
+
+Based on size, authority, and impact, recommend one of three decisions:
 
 **ABSORB** — take it into the current sprint
 - Only valid for Trivial or Small changes
@@ -74,7 +105,7 @@ Based on size and impact, recommend one of three decisions:
 - Valid when change contradicts `project-intake.json` out_of_scope
 - Valid when change would cause timeline to miss the project deadline
 - Valid when product owner decides the value doesn't justify the cost
-- Must state the reason clearly
+- Must state the reason clearly — recorded in SPRINT.md for requestor visibility
 
 ---
 
@@ -104,22 +135,30 @@ Based on size and impact, recommend one of three decisions:
 
 ### Decision
 **Decision**: ABSORB / DEFER / REJECT
-**Decided by**: hiring-manager-orchestrator [+ product owner if Large/Breaking]
-**Reason**: {justification}
+**Impact level**: Critical / High / Medium / Low
+**SLA**: {required decision timeline per impact level}
+**Decided by**: {orchestrator alone / orchestrator + product owner}
+**Reason**: {justification — must be specific enough for requestor to understand}
+
+**Tasks set to ON_HOLD pending this decision**:
+{List task IDs and agents, or "None — Trivial/Small change, work continues"}
 
 **If ABSORB**:
 - Agent taking this: {agent}
 - Sprint item ID: S{N}-{X} (new) or extends S{N}-{Y}
 - Updated sprint end date: {same / extended to {date}}
+- Tasks released from ON_HOLD: {list or "N/A"}
 
 **If DEFER**:
 - Backlog ID: B-{N}
 - Priority for next sprint: High / Medium / Low
 - Notes for sprint planning: {context}
+- Tasks released from ON_HOLD: {list — deferred change unblocks them}
 
 **If REJECT**:
 - Reason: {clear explanation}
 - Alternative: {any partial approach or future consideration}
+- Tasks released from ON_HOLD: {list — rejection unblocks them}
 ```
 
 ---

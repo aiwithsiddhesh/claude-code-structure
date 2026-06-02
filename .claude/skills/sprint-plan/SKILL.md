@@ -1,4 +1,5 @@
 ---
+name: sprint-plan
 description: Plan and commit the next sprint. Reads SPRINT.md backlog, assigns items to agents, sets sprint dates, and updates SPRINT.md. Run at the start of every sprint cycle.
 disable-model-invocation: true
 argument-hint: "[project-name]"

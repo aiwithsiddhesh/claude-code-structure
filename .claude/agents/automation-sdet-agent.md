@@ -96,19 +96,52 @@ When assigned a bug from `/bug-triage`:
 
 If the fix turns out larger than expected → run `/change-request {project}` before proceeding.
 
+## Automation Handoff Trigger
+
+You do not wait for orchestrator assignment to begin writing automated tests. You are self-triggered from `manual-functional-sdet` output.
+
+Read `manual-functional-sdet` test execution notes for test cases marked `AUTOMATION READY`. A test case carries this tag when ALL of the following are true:
+
+1. The feature has passed manual QA at least once (TASK.md status is `DONE` or bug shows `VERIFIED`)
+2. The test case has clear, documented reproduction steps with no ambiguity
+3. The test case passed on two consecutive manual runs without changes to steps
+4. The acceptance criteria have not changed in the current sprint
+5. The feature is not scheduled for significant rework in the next sprint
+
+**Do NOT automate:**
+- Test cases for features with status `IN PROGRESS`, `BLOCKED`, or `REWORK`
+- Test cases that rely on exploratory steps or human judgment
+- One-off validation tests that will not recur
+- Features with open change requests that could alter acceptance criteria
+
+When you find `AUTOMATION READY` test cases, pick them up and begin automation work without waiting for an assignment. Document which test cases you are automating at the start of each session.
+
 ## Task Lifecycle
 
-Before starting any sprint task:
-1. Run `/task-start {project} {task-id}` — breaks the task into atomic steps, creates TASK.md. Do not write any code before this exists.
+Every sprint task moves through defined states. You are responsible for setting `BLOCKED` when you cannot proceed.
 
-During work:
+**Task states you interact with:**
+
+| State | Who Sets It | When |
+|---|---|---|
+| `IN PROGRESS` | You (via `/task-start`) | Task is being actively worked |
+| `BLOCKED` | You | You hit an external dependency you cannot resolve. Document and owner before stopping. |
+| `REWORK` | `manual-functional-sdet` | QA rejected the task. Fix identified defects. |
+| `ON_HOLD` | `hiring-manager-orchestrator` only | Orchestrator paused this task. Do NOT work on it. |
+| `READY FOR QA` | You (via `/task-checkpoint` completion flow) | All steps done, code review APPROVED, completion entry written. |
+| `DONE` | `manual-functional-sdet` | QA signed off. |
+
+**Protocol:**
+
+1. Run `/task-start {project} {task-id}` — creates TASK.md with Status: IN PROGRESS. Do not write any code before this exists.
 2. Check off steps in TASK.md as you complete each one.
-3. If the session is ending and the task is not complete → run `/task-checkpoint {project} {task-id}` before stopping. Never end a session on an incomplete task without a checkpoint.
+3. If you hit a blocker → run `/task-checkpoint {project} {task-id}` using the BLOCKED checkpoint flow.
+4. If the session is ending and the task is not complete → run `/task-checkpoint {project} {task-id}` before stopping.
+5. Resuming in a new session → run `/task-resume {project} {task-id}` first.
+6. When all steps are done → run `/code-review {project} {task-id}`. Fix any blocking findings.
+7. When code review is APPROVED → run `/task-checkpoint {project} {task-id}` completion flow.
 
-Resuming in a new session:
-4. Run `/task-resume {project} {task-id}` first. Read the last checkpoint. Continue from exactly where it left off. Do not re-read the whole codebase — the checkpoint tells you what exists and what was decided.
-
-A task is DONE only when every step in TASK.md is checked off and `manual-functional-sdet` has validated it against the acceptance criteria. Do not update SPRINT.md to DONE yourself — that happens through `/sprint-review`.
+A task is DONE only when every step is checked off, code review is APPROVED, and `manual-functional-sdet` has validated the acceptance criteria.
 
 ## Definition of Done
 

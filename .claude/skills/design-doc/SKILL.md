@@ -1,154 +1,44 @@
 ---
-description: Generate a technical design document for a feature or system. Use before development begins on any non-trivial feature to align on approach before writing code.
+name: design-doc
+description: Generate a technical design document for a named feature or system. Use before development begins on any non-trivial feature to force explicit thinking about the approach and surface risks early. Reads feature name from $ARGUMENTS and any existing requirements context. Produces a design document covering problem statement, scope, solution architecture, API contract, DB changes, alternatives, risks, and testing plan.
 disable-model-invocation: true
 argument-hint: "[feature name]"
 ---
 
 # Technical Design Document: $ARGUMENTS
 
-Generate a complete technical design document. This document should be written BEFORE development begins, to force explicit thinking about the approach, surface risks early, and get team alignment.
+Write a complete technical design document before development begins. Force explicit thinking about the approach, surface risks early, and reach team alignment.
 
 ---
 
-## Document Template
+## Step 1 — Gather Context
 
-```markdown
-# Technical Design: [Feature Name]
-
-**Author**: [agent/person]
-**Date**: [today]
-**Status**: Draft | In Review | Approved
-**Stakeholders**: [list agents/people who should review]
+Before filling the template, read:
+- The feature requirements and acceptance criteria from SPRINT.md (if a sprint is active)
+- Any existing related code, APIs, or DB schemas this feature will touch
+- Any constraints from `project-intake.json` that apply to this feature
 
 ---
 
-## 1. Problem Statement
+## Step 2 — Fill the Design Document
 
-**What problem are we solving?**
-[1–3 sentences. Be specific. Include who is affected and what happens today without this feature.]
+Use the template at `assets/design-doc-template.md`. Fill in all `[placeholder]` values:
+- `[Feature Name]` — from $ARGUMENTS
+- `[today]` — current date
+- `[agent/person]` — your agent name
+- All stakeholders, scope, solution, API contract, DB changes, risks, and testing plan — from context gathered in Step 1
 
-**Why now?**
-[Business or technical driver. What changes if we don't build this?]
-
-**Success criteria:**
-- [ ] [Measurable outcome 1]
-- [ ] [Measurable outcome 2]
+Do not leave any section empty. If a section is not applicable (e.g., no DB changes), write "Not applicable — [reason]".
 
 ---
 
-## 2. Scope
+## Step 3 — Output and Confirm
 
-**In scope**:
-- [What this design covers]
+Output the completed design document.
 
-**Out of scope** (explicitly):
-- [What this design does NOT cover — important to prevent scope creep]
-
-**Assumptions**:
-- [What must be true for this design to work]
-
----
-
-## 3. Proposed Solution
-
-**Overview** (2–4 sentences summarizing the approach):
-
-**Architecture / Data Flow**:
-[Diagram or step-by-step description of how data moves through the system]
-
+Then confirm:
 ```
-[User] → [Frontend] → [API /endpoint] → [Service] → [Database]
-                                      ↓
-                               [External service]
-```
-
-**Key Components**:
-
-| Component | Responsibility | New or Existing |
-|---|---|---|
-| [component] | [what it does] | New / Existing |
-
-**API Contract** (if applicable):
-```
-POST /api/v1/[resource]
-Request: { ... }
-Response: { data: { ... } }
-```
-
-**Database Changes** (if applicable):
-- New table: `[table_name]` with columns: [list]
-- New column: `[table].[column]` type [type], nullable/not null
-- New index: `[description]`
-- Migration reversible: Yes / No (explain if No)
-
----
-
-## 4. Alternatives Considered
-
-For each alternative you ruled out, explain why:
-
-| Alternative | Why Rejected |
-|---|---|
-| [approach] | [reason] |
-| [approach] | [reason] |
-
----
-
-## 5. Risks & Mitigations
-
-| Risk | Probability | Impact | Mitigation |
-|---|---|---|---|
-| [risk] | H/M/L | H/M/L | [how to mitigate] |
-
-**Open questions** (must be resolved before development starts):
-- [ ] [Question] — Owner: [person]
-- [ ] [Question] — Owner: [person]
-
----
-
-## 6. Implementation Plan
-
-**Agent assignments**:
-| Agent | Tasks |
-|---|---|
-| [agent] | [tasks] |
-
-**Sequence**:
-1. [Step 1]
-2. [Step 2]
-3. ...
-
-**Estimated complexity**: Small (< 1 day) / Medium (1–3 days) / Large (3–7 days) / XL (> 1 week)
-
----
-
-## 7. Testing Plan
-
-| Test Type | Coverage |
-|---|---|
-| Unit tests | [what will be unit tested] |
-| Integration tests | [what will be integration tested] |
-| Manual QA | [key scenarios for manual-functional-sdet] |
-| Performance | [if applicable] |
-
----
-
-## 8. Rollout Plan
-
-- **Feature flag**: Yes / No
-- **Rollback plan**: [how to roll back if something goes wrong]
-- **Monitoring**: [what metrics/alerts to watch after deployment]
-
----
-
-## Review Checklist
-
-Before approving this design, reviewers should confirm:
-- [ ] Problem statement is clear and correct
-- [ ] Scope boundaries are explicit
-- [ ] API contract is complete
-- [ ] Database changes are migration-safe
-- [ ] Security implications addressed (auth, input validation, PII)
-- [ ] All open questions have owners
-- [ ] Test plan covers acceptance criteria
+✅ Design document generated for {feature name}.
+Review open questions (Section 5) and resolve with owners before development starts.
+Next: /handoff business-analyst-agent to [lead engineer] once the design is approved, or assign directly to the development agent.
 ```

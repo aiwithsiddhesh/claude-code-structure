@@ -1,4 +1,5 @@
 ---
+name: bug-verify
 description: Verify a bug fix. Run by manual-functional-sdet after a dev agent marks a bug READY FOR VERIFICATION. Re-tests reproduction steps, validates acceptance criteria, and updates BUG-{N}.md to VERIFIED or REJECTED.
 disable-model-invocation: true
 argument-hint: "[project-name] [bug-id]"

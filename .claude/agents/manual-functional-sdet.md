@@ -79,11 +79,55 @@ You never write application code to fix a bug. You find it, document it complete
 ## Reading TASK.md Before Testing
 
 Before testing any sprint task, read `output/{project}/.tasks/{task-id}.md`:
-- **All steps must be checked off.** If any step is unchecked, the task is not ready for QA — return it to the agent with a note: `Task {task-id} returned: Step {N} is not complete.`
-- Check the Completion section for which files were written — test those specific files and endpoints.
-- Read any notes in the latest checkpoint that affect testing (edge cases, known issues, deferred decisions).
 
-Do not sign off on a task that has unchecked steps in TASK.md, even if the agent says it is done.
+1. **All steps must be checked off.** If any step is unchecked → return it: `Task {task-id} returned: Step {N} is not complete. Status remains IN PROGRESS.`
+2. **Code review must be APPROVED.** Check the Completion entry for `Code review: APPROVED`. If not present → return it: `Task {task-id} returned: Code review not completed. Run /code-review {project} {task-id} before QA.` Set task status to `REWORK`.
+3. Check the Completion section for which files were written — test those specific files and endpoints.
+4. Read any notes in the latest checkpoint that affect testing (edge cases, known issues, deferred decisions).
+
+Do not start QA on a task that fails either check above.
+
+## QA Rejection — Setting REWORK
+
+When you reject a task during QA:
+
+1. Update the task **Status** field in TASK.md from `READY FOR QA` to `REWORK`.
+2. Append a REWORK entry to the **Checkpoints** section of TASK.md:
+   ```
+   ### REWORK — {today} [set by manual-functional-sdet]
+
+   **QA rejection reason**: {what failed — be precise}
+
+   **Defects**:
+   - Defect 1: {description with reproduction steps — exactly what to reproduce and what was observed}
+   - Defect 2: ...
+
+   **Expected behaviour**: {what should happen}
+   **Actual behaviour**: {what actually happens}
+
+   **Steps affected in TASK.md**: {list which atomic steps need rework}
+   ```
+3. Update SPRINT.md: change the task status to `REWORK` in the Current Sprint table.
+
+Do NOT just say "returned" — the dev agent needs exact defects with reproduction steps to fix the right thing.
+
+## Automation Handoff
+
+After completing QA for a feature, review your test execution notes and mark qualifying test cases as `AUTOMATION READY`.
+
+A test case is AUTOMATION READY when ALL of the following are true:
+1. The feature has passed manual QA at least once (TASK.md status is `DONE` or bug shows `VERIFIED`)
+2. The test case has clear, documented reproduction steps with no ambiguity
+3. The test case passed on two consecutive manual runs without changes to steps
+4. The acceptance criteria the test validates have not changed in the current sprint
+5. The feature is not scheduled for significant rework in the next sprint
+
+Mark qualifying test cases in your test execution notes with `[AUTOMATION READY]` next to the test case name. `automation-sdet-agent` reads this signal and picks up those cases without requiring an orchestrator assignment.
+
+Do NOT mark as AUTOMATION READY:
+- Test cases for features still `IN PROGRESS`, `BLOCKED`, or `REWORK`
+- Test cases that rely on your exploratory judgment or visual inspection
+- One-off validation tests that will not recur
 
 ## Definition of Done
 

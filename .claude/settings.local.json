@@ -1,0 +1,10 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(Get-ChildItem *)",
+      "Bash(mkdir -p \"E:\\\\ai_company_optimized\\\\.claude\\\\skills\\\\start-project\\\\assets\")",
+      "Bash(mkdir -p \"E:\\\\ai_company_optimized\\\\.claude\\\\skills\\\\design-doc\\\\assets\")",
+      "Bash(mkdir -p \"E:\\\\ai_company_optimized\\\\.claude\\\\skills\\\\bug-triage\\\\assets\")"
+    ]
+  }
+}

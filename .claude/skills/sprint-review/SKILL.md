@@ -1,4 +1,5 @@
 ---
+name: sprint-review
 description: Close the current sprint. Reviews what was completed vs committed, moves incomplete items back to backlog, updates sprint history in SPRINT.md. Run at the end of every sprint before planning the next one.
 disable-model-invocation: true
 argument-hint: "[project-name]"
@@ -26,22 +27,34 @@ You are the **hiring-manager-orchestrator**. Work through each step.
 
 ## Step 2 — Review Each Committed Item
 
-For each item in the current sprint, determine status:
+For each item in the current sprint, determine status from its TASK.md:
 
-**DONE** — all steps in TASK.md checked off, Completion entry written by `/task-checkpoint`, and `manual-functional-sdet` has signed off
-**READY FOR QA** — all steps checked off, awaiting `manual-functional-sdet` validation
-**IN PROGRESS** — task has a TASK.md with unchecked steps and at least one checkpoint
-**PARTIAL** — TASK.md exists with some steps checked, last checkpoint written
-**NOT STARTED** — no TASK.md exists for this item
-**BLOCKED** — TASK.md exists, latest checkpoint has a blocker entry
+| Status | Criteria |
+|---|---|
+| **DONE** | All steps checked off, Completion entry written, code review APPROVED recorded, `manual-functional-sdet` signed off |
+| **READY FOR QA** | All steps checked off, Completion entry written, awaiting `manual-functional-sdet` validation |
+| **IN PROGRESS** | TASK.md exists with unchecked steps and at least one checkpoint |
+| **BLOCKED** | TASK.md Status field = `BLOCKED` — latest checkpoint has a BLOCKED entry with blocker description and owner |
+| **ON_HOLD** | TASK.md Status field = `ON_HOLD` — set by orchestrator, hold condition must be reviewed |
+| **REWORK** | TASK.md Status field = `REWORK` — QA rejected, defects documented in latest checkpoint |
+| **NOT STARTED** | No TASK.md exists for this item |
 
 For each item marked DONE or READY FOR QA, verify:
 - `output/{project}/.tasks/{task-id}.md` exists
 - All steps in TASK.md are checked off
 - A Completion entry exists (not just a mid-session checkpoint)
+- Code review APPROVED is recorded in the Completion entry
 - `manual-functional-sdet` sign-off is recorded
 
-If any of these are missing, downgrade the status to IN PROGRESS and note what is missing.
+If any of these are missing, downgrade the status and note what is missing.
+
+**For every BLOCKED item** — the orchestrator must make an explicit decision. Do not carry it forward silently. Ask:
+- Is the blocker resolved? If yes → set back to IN PROGRESS and add to next sprint.
+- Is the blocker still unresolved? If yes → record the blocker owner and estimated resolution in the carry-forward note.
+
+**For every ON_HOLD item** — the orchestrator must make an explicit decision. Do not carry it forward silently. Ask:
+- Has the hold condition been met? If yes → release the hold, set to IN PROGRESS, carry forward.
+- Is the condition still unmet? If yes → confirm ON_HOLD continues into next sprint and state why.
 
 Ask for confirmation on any item where status is unclear before proceeding.
 
@@ -62,14 +75,34 @@ Ask for confirmation on any item where status is unclear before proceeding.
 | ID | Item | Agent | Status | Notes |
 |---|---|---|---|---|
 | S{N}-1 | {item} | backend-engineer | ✅ DONE | |
-| S{N}-2 | {item} | frontend-engineer | ⚠️ PARTIAL | 60% done, auth flow incomplete |
-| S{N}-3 | {item} | devops-cloud-engineer | ❌ NOT STARTED | blocked on cloud credentials |
+| S{N}-2 | {item} | frontend-engineer | ⚠️ IN PROGRESS | 60% done, auth flow incomplete |
+| S{N}-3 | {item} | devops-cloud-engineer | 🚫 BLOCKED | Waiting on cloud credentials — owner: PO |
+| S{N}-4 | {item} | frontend-engineer | ⏸ ON_HOLD | Hold condition: S{N}-1 must complete first |
+
+### BLOCKED Items — Orchestrator Decision Required
+
+For each BLOCKED item, the orchestrator must decide:
+
+| ID | Blocker | Owner | Decision |
+|---|---|---|---|
+| S{N}-3 | {blocker description} | {owner} | Carry forward / Drop / Reassign |
+
+### ON_HOLD Items — Orchestrator Decision Required
+
+For each ON_HOLD item, the orchestrator must decide:
+
+| ID | Hold Condition | Met? | Decision |
+|---|---|---|---|
+| S{N}-4 | {hold condition} | Yes / No | Release / Continue hold |
 
 ### Sprint Metrics
 
 - Committed: {N} items
-- Completed: {N} items ({%})
-- Partial: {N} items
+- Completed (DONE): {N} items ({%})
+- Ready for QA: {N} items
+- In Progress: {N} items
+- Blocked: {N} items
+- On Hold: {N} items
 - Not started: {N} items
 - Bugs discovered this sprint: {N} (see Bug Log)
 
@@ -81,8 +114,9 @@ Ask for confirmation on any item where status is unclear before proceeding.
 
 ### Carry-Forward Items
 Items moved back to backlog for next sprint:
-- S{N}-2 (partial): {remaining work description}
-- S{N}-3 (not started): {reason}
+- S{N}-2 (in progress): {remaining work description}
+- S{N}-3 (blocked): {blocker status and owner}
+- S{N}-4 (on hold): {hold condition and whether it continues}
 
 ### Recommended Focus for Next Sprint
 [Based on what's in the backlog and what was carried forward, what should sprint {N+1} prioritise?]

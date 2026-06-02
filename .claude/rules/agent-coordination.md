@@ -33,7 +33,20 @@ Use **sequential assignment** when:
 
 ## QA Involvement Timing
 
-- **manual-functional-sdet** — Engaged after dev completes; validates feature against acceptance criteria
-- **automation-sdet-agent** — Engaged when test cases are stable and repeatable; builds regression suite
+- **manual-functional-sdet** — Engaged after dev completes and `/code-review` APPROVED is recorded in TASK.md. Validates feature against acceptance criteria.
+- **automation-sdet-agent** — Self-triggered from `manual-functional-sdet` output. Does NOT wait for orchestrator assignment. Picks up test cases marked `AUTOMATION READY` in manual QA notes.
+
+**A test case is AUTOMATION READY when ALL of the following are true:**
+1. The feature has passed manual QA at least once (TASK.md status is `DONE` or bug shows `VERIFIED`)
+2. The test case has clear, documented reproduction steps with no ambiguity
+3. The test case passed on two consecutive manual runs without changes to steps
+4. The acceptance criteria have not changed in the current sprint (no open change requests affecting this feature)
+5. The feature is not scheduled for significant rework in the next sprint
+
+**Automation is NOT appropriate for:**
+- Features with task status `IN PROGRESS`, `BLOCKED`, or `REWORK`
+- Test cases that depend on exploratory steps or human judgment
+- One-off validation tests that will not recur
+- Features with open change requests that could alter acceptance criteria
 
 Never release without QA sign-off from manual-functional-sdet.

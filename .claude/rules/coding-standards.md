@@ -73,6 +73,39 @@ All generated project code MUST be saved under `output/{project-name}/`.
 - **Formatter**: Prettier (TS/JS), Black (Python). Auto-format before commit.
 - **Trailing commas**: always in multi-line TypeScript/JavaScript.
 
+## Code Review
+
+Every coding agent must run `/code-review` on their own output before marking a task complete. This is a full checklist run — not a shortcut.
+
+**What "code-reviewed" means:**
+
+A task is code-reviewed when the agent has run `/code-review` and the result is **APPROVED**. That approval must be recorded in the Completion entry of TASK.md. `manual-functional-sdet` will not start QA on a task without that record.
+
+**Automated checks that must pass before submitting:**
+
+| Stack | Linter | Type Checker | Security Scan |
+|---|---|---|---|
+| TypeScript/JavaScript | ESLint (no errors) | `tsc --noEmit` (zero errors) | `npm audit` (no Critical/High CVEs) |
+| Python | `ruff` or `flake8` (no errors) | `mypy` (zero errors) | `pip-audit` (no Critical/High CVEs) |
+
+**Review checklist (all items must be verified):**
+
+- **Correctness** — Does the code do what the task acceptance criteria require? Run through each criterion.
+- **Security** — Run through the checklist in `security.md`. No SQL injection, no secrets in code, inputs validated, auth on protected routes.
+- **Code quality** — Naming conventions correct, functions ≤ 40 lines, files ≤ 300 lines, no magic numbers, no commented-out code.
+- **Test coverage** — Unit tests written for all business logic, edge cases covered, no tests relying on implementation details.
+- **Documentation** — All exported functions have JSDoc/docstrings, non-obvious logic has a comment explaining why.
+
+**Reviewer ownership:**
+
+- **Solo project** — Self-review required. Agent reviews its own code against the full checklist. Cannot be skipped.
+- **Team project** — Peer review by a different agent in the same domain. A `frontend-engineer` reviewing another `frontend-engineer`'s code is valid. A `frontend-engineer` reviewing `backend-engineer` code is only valid if no same-domain peer is available.
+- **`hiring-manager-orchestrator` is never a code reviewer.**
+
+**Output:** APPROVED (task can move to READY FOR QA) or CHANGES REQUESTED (specific list of what must change — task stays IN PROGRESS until addressed).
+
+Use `/code-review` — the skill enforces this checklist and produces the required output.
+
 ## Task Lifecycle Protocol
 
 This protocol applies to every coding agent on every sprint task. It is not optional.
@@ -85,13 +118,15 @@ This protocol applies to every coding agent on every sprint task. It is not opti
   [new session]
 /task-resume {project} {task-id}       ← first thing in a new session on an existing task
   [continue from checkpoint]
-/task-checkpoint {project} {task-id}   ← when all steps done → writes completion entry
+/code-review {project} {task-id}       ← when all steps done — before marking complete
+/task-checkpoint {project} {task-id}   ← when code review passes → writes completion entry
 ```
 
 **Rules:**
 - No code is written before `/task-start` creates TASK.md
 - No session ends on an incomplete task without `/task-checkpoint`
 - No session starts on an existing task without `/task-resume`
+- `/code-review` must pass before running the final `/task-checkpoint` completion flow
 - Tasks live at `output/{project}/.tasks/{task-id}.md`
 - Maximum 10 atomic steps per task — if you need more, the task is too large, flag to orchestrator
 - Each atomic step produces exactly one verifiable artifact

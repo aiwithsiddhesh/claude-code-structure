@@ -1,12 +1,32 @@
 ---
-description: Run the pre-release quality gate checklist. Use before any production deployment to verify all gates are satisfied.
+name: release-checklist
+description: Run the pre-release quality gate checklist before any production deployment. Use after all sprint features are complete and QA has signed off, as the final gate before going to production. Reads [feature or release name] from $ARGUMENTS. Produces a GO / NO-GO / CONDITIONAL GO decision with sign-off covering development completeness, testing, documentation, infrastructure, security, and release readiness.
 disable-model-invocation: true
-argument-hint: "[feature or release name]"
+argument-hint: "[project-name]"
 ---
 
 # Release Checklist: $ARGUMENTS
 
-Work through each category. Mark ✅ Pass, ❌ Fail, or ⚠️ Needs Review for each item.
+## Read Current State
+
+```
+!`cat output/$ARGUMENTS/SPRINT.md 2>/dev/null || echo "ERROR: output/$ARGUMENTS/SPRINT.md not found. Verify the project name."`
+```
+
+---
+
+## Step 1 — Validate Preconditions
+
+Before running the checklist, confirm:
+- SPRINT.md must exist for this project. If not found → `❌ Cannot run release checklist — no project state found. Check project name.`
+- All committed sprint items should be DONE or explicitly deferred. If any item is IN PROGRESS, BLOCKED, or REWORK → flag it: `⚠️ Sprint item {ID} is {status}. Confirm it is intentionally excluded from this release before proceeding.`
+- QA sign-off from `manual-functional-sdet` must exist for all items in scope. If not confirmed → `❌ Cannot release — manual-functional-sdet sign-off not found for {item}.`
+
+If preconditions are not met, stop and report what must be resolved before re-running.
+
+---
+
+Work through each category below. Mark ✅ Pass, ❌ Fail, or ⚠️ Needs Review for each item.
 
 ## Development Completeness
 - [ ] All acceptance criteria implemented

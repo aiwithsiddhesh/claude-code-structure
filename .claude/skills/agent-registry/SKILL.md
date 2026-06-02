@@ -1,6 +1,6 @@
 ---
-description: Full reference of all available agents, their capabilities, specializations, and assignment guidance. Use when deciding which agent to assign to a task, or to understand the complete team composition.
-disable-model-invocation: false
+name: agent-registry
+description: Full reference of all available agents, capabilities, and assignment guidance. Use when deciding which agent to assign to a task or when understanding the complete team composition. Reads the agent registry inline — no state files required. Outputs agent descriptions, triggers, stack, and the assignment decision matrix.
 ---
 
 # Agent Registry

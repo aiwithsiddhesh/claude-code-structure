@@ -1,0 +1,12 @@
+{
+  "json.schemas": [
+    {
+      "fileMatch": ["project-intake.json"],
+      "url": "./project-intake.schema.json"
+    }
+  ],
+  "json.validate.enable": true,
+  "[json]": {
+    "editor.formatOnSave": true
+  }
+}

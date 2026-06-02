@@ -1,0 +1,296 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "project-intake.schema.json",
+  "title": "AI Delivery Team — Project Intake",
+  "description": "Fill this file before running /start-project. The orchestrator reads it to assign agents, set the output directory, and produce a delivery plan.",
+  "type": "object",
+  "required": ["project", "stack", "requirements", "timeline"],
+  "additionalProperties": false,
+
+  "properties": {
+
+    "$schema": {
+      "type": "string",
+      "description": "Points to the JSON schema for VS Code autocomplete. Do not edit."
+    },
+
+    "project": {
+      "type": "object",
+      "description": "Core identity of the project.",
+      "required": ["name", "description", "type"],
+      "additionalProperties": false,
+      "properties": {
+        "name": {
+          "type": "string",
+          "description": "Kebab-case project identifier. Becomes the output directory name: output/{name}/. Example: customer-portal, analytics-dashboard, auth-service.",
+          "pattern": "^[a-z][a-z0-9-]*$",
+          "minLength": 2,
+          "examples": ["customer-portal", "analytics-dashboard", "auth-service", "data-pipeline-v2"]
+        },
+        "display_name": {
+          "type": "string",
+          "description": "Human-readable title shown in status reports and delivery summaries. Example: Customer Portal.",
+          "examples": ["Customer Portal", "Analytics Dashboard", "Internal Auth Service"]
+        },
+        "description": {
+          "type": "string",
+          "description": "2-3 sentences describing what this project is, who it is for, and the core problem it solves. Used by the business-analyst-agent as the starting context for requirements.",
+          "minLength": 20,
+          "examples": [
+            "A self-service portal for enterprise customers to manage their subscriptions, view invoices, and contact support. Replaces the current manual email-based process.",
+            "An internal dashboard for the ops team to monitor real-time order processing metrics and trigger manual interventions when automation fails."
+          ]
+        },
+        "type": {
+          "type": "string",
+          "description": "Project category. Used by the orchestrator to determine the default agent set. web-app: full frontend + backend + DB. api: backend only. data-pipeline: ETL/ML focus. mobile: React Native. ai-feature: LLM/RAG feature added to an existing product. internal-tool: lightweight ops/admin tool.",
+          "enum": ["web-app", "api", "data-pipeline", "mobile", "ai-feature", "internal-tool"],
+          "examples": ["web-app"]
+        }
+      }
+    },
+
+    "stack": {
+      "type": "object",
+      "description": "Technology choices. Each value maps directly to which agents are assigned and which path-scoped rules activate.",
+      "additionalProperties": false,
+      "properties": {
+        "frontend": {
+          "type": "string",
+          "description": "Frontend framework. Activates frontend-engineer agent and loads frontend-patterns.md rules. Use 'none' for API-only projects.",
+          "enum": ["react", "next.js", "vue", "svelte", "react-native", "none", ""],
+          "examples": ["next.js"]
+        },
+        "backend": {
+          "type": "string",
+          "description": "Backend framework. Activates backend-engineer or full-stack-engineer. Loads api-patterns.md rules.",
+          "enum": ["node.js-express", "node.js-fastify", "python-fastapi", "python-django", "python-flask", "go", "none", ""],
+          "examples": ["node.js-express", "python-fastapi"]
+        },
+        "database": {
+          "type": "string",
+          "description": "Primary database. Activates database.md path-scoped rules. If set, backend-engineer handles schema design and migrations.",
+          "enum": ["postgresql", "mysql", "mongodb", "sqlite", "redis", "supabase", "none", ""],
+          "examples": ["postgresql"]
+        },
+        "auth": {
+          "type": "string",
+          "description": "Authentication strategy. Informs backend-engineer on which patterns to use from security.md.",
+          "enum": ["jwt", "oauth2", "session-cookie", "api-key", "supabase-auth", "auth0", "none", ""],
+          "examples": ["jwt"]
+        },
+        "hosting": {
+          "type": "string",
+          "description": "Target cloud or hosting platform. Triggers devops-cloud-engineer assignment for infra setup and CI/CD.",
+          "enum": ["aws", "gcp", "azure", "vercel", "railway", "fly.io", "self-hosted", "undecided", ""],
+          "examples": ["aws", "vercel"]
+        },
+        "ai_ml": {
+          "type": "boolean",
+          "description": "Set to true if the project requires LLM, RAG, embeddings, chatbot, ML models, or data pipelines. Triggers genai-llm-engineer or data-ml-engineer assignment.",
+          "default": false
+        },
+        "ai_ml_type": {
+          "type": "string",
+          "description": "Required when ai_ml is true. 'llm-rag' triggers genai-llm-engineer (chatbot, RAG, prompt engineering, embeddings). 'ml-model' triggers data-ml-engineer (predictions, classification, data pipelines).",
+          "enum": ["llm-rag", "ml-model", "both", ""],
+          "examples": ["llm-rag", "ml-model"]
+        }
+      }
+    },
+
+    "requirements": {
+      "type": "object",
+      "description": "What to build, what not to build, and performance/security expectations.",
+      "required": ["features"],
+      "additionalProperties": false,
+      "properties": {
+        "features": {
+          "type": "array",
+          "description": "List of core features to build. The business-analyst-agent converts each item into user stories with acceptance criteria. Be specific — vague features become vague stories.",
+          "items": {
+            "type": "string",
+            "minLength": 5
+          },
+          "minItems": 1,
+          "examples": [
+            ["User registration and login with email/password", "Dashboard showing order history with filtering by date and status", "PDF invoice download", "Role-based access: admin can view all users, regular user sees own data only"]
+          ]
+        },
+        "out_of_scope": {
+          "type": "array",
+          "description": "Explicit exclusions. Anything listed here will not be built in this project. Prevents scope creep and stops agents from building things not asked for.",
+          "items": { "type": "string" },
+          "examples": [
+            ["Payment processing (handled by existing Stripe integration)", "Mobile app (web only)", "Email notifications (future phase)"]
+          ]
+        },
+        "non_functional": {
+          "type": "object",
+          "description": "Performance, scale, and security requirements. Directly influences agent decisions on architecture, indexing, and security review depth.",
+          "additionalProperties": false,
+          "properties": {
+            "expected_users": {
+              "type": "string",
+              "description": "Rough scale estimate. Affects infra sizing (devops-cloud-engineer) and caching/pagination decisions (backend-engineer).",
+              "enum": ["under-100", "100-1k", "1k-10k", "10k-100k", "100k+", ""],
+              "examples": ["1k-10k"]
+            },
+            "performance": {
+              "type": "string",
+              "description": "Specific performance targets. Example: 'API p95 < 200ms, dashboard load < 2s'. Used as acceptance criteria for backend-engineer and devops-cloud-engineer.",
+              "examples": ["API p95 < 200ms, page load < 2s on 4G", "Batch job processes 1M rows in < 10 minutes"]
+            },
+            "security_level": {
+              "type": "string",
+              "description": "standard: normal security.md rules apply. high: mandatory security review on every PR, penetration test before release, stricter auth requirements. Use 'high' for projects handling financial data, PII, healthcare, or regulated industries.",
+              "enum": ["standard", "high"],
+              "default": "standard"
+            }
+          }
+        }
+      }
+    },
+
+    "timeline": {
+      "type": "object",
+      "description": "Deadline and milestones. The orchestrator validates feasibility against the feature list and flags risk if scope is unrealistic.",
+      "required": ["deadline"],
+      "additionalProperties": false,
+      "properties": {
+        "deadline": {
+          "type": "string",
+          "description": "Target completion date in ISO format (YYYY-MM-DD) or a relative estimate like '6 weeks'. The orchestrator will flag if the feature list is unrealistic for this timeline.",
+          "examples": ["2026-08-01", "6 weeks", "Q3 2026"]
+        },
+        "milestones": {
+          "type": "array",
+          "description": "Optional intermediate milestones. Useful for phased delivery or stakeholder checkpoints.",
+          "items": {
+            "type": "object",
+            "required": ["name", "date"],
+            "additionalProperties": false,
+            "properties": {
+              "name": {
+                "type": "string",
+                "examples": ["MVP — core auth + dashboard", "Beta — all features complete", "GA release"]
+              },
+              "date": {
+                "type": "string",
+                "examples": ["2026-07-01", "4 weeks"]
+              }
+            }
+          },
+          "examples": [
+            [
+              { "name": "MVP — auth + read-only dashboard", "date": "2026-07-01" },
+              { "name": "Beta — full feature set", "date": "2026-07-22" },
+              { "name": "GA release", "date": "2026-08-01" }
+            ]
+          ]
+        }
+      }
+    },
+
+    "team": {
+      "type": "object",
+      "description": "Optional overrides for agent assignment. Leave both arrays empty to let the orchestrator decide automatically based on stack and project type.",
+      "additionalProperties": false,
+      "properties": {
+        "agents_needed": {
+          "type": "array",
+          "description": "Force-include specific agents. Leave empty for auto-assignment. Only use this if you know you need something the orchestrator wouldn't pick automatically.",
+          "items": {
+            "type": "string",
+            "enum": [
+              "hiring-manager-orchestrator",
+              "business-analyst-agent",
+              "frontend-engineer",
+              "backend-engineer",
+              "full-stack-engineer",
+              "devops-cloud-engineer",
+              "genai-llm-engineer",
+              "data-ml-engineer",
+              "manual-functional-sdet",
+              "automation-sdet-agent"
+            ]
+          }
+        },
+        "skip_agents": {
+          "type": "array",
+          "description": "Force-exclude specific agents even if the orchestrator would normally assign them. Example: skip devops-cloud-engineer if infra already exists.",
+          "items": {
+            "type": "string",
+            "enum": [
+              "business-analyst-agent",
+              "frontend-engineer",
+              "backend-engineer",
+              "full-stack-engineer",
+              "devops-cloud-engineer",
+              "genai-llm-engineer",
+              "data-ml-engineer",
+              "manual-functional-sdet",
+              "automation-sdet-agent"
+            ]
+          },
+          "examples": [
+            ["devops-cloud-engineer", "automation-sdet-agent"]
+          ]
+        }
+      }
+    },
+
+    "context": {
+      "type": "object",
+      "description": "Additional context agents need before starting work.",
+      "additionalProperties": false,
+      "properties": {
+        "existing_codebase": {
+          "type": "boolean",
+          "description": "Set to true if agents will be working inside or alongside an existing codebase. When true, all agents will read the existing code before writing anything new.",
+          "default": false
+        },
+        "codebase_notes": {
+          "type": "string",
+          "description": "Required when existing_codebase is true. Brief description of the existing codebase: what it does, its main tech stack, known quirks, and where new work fits in.",
+          "examples": [
+            "Existing Node.js Express API with PostgreSQL. Auth is handled by a separate internal service at /api/auth. New features must use the existing User model in src/models/user.ts."
+          ]
+        },
+        "reference_docs": {
+          "type": "array",
+          "description": "Paths to docs, specs, or files agents should read before starting. Relative to repo root. Example: PRDs, API specs, architecture diagrams.",
+          "items": { "type": "string" },
+          "examples": [
+            ["docs/product-spec.md", "docs/api-spec.yaml", "docs/architecture.png"]
+          ]
+        },
+        "constraints": {
+          "type": "array",
+          "description": "Hard rules every agent must follow throughout this project. These are enforced constraints, not suggestions. Example: must use internal auth service, cannot use third-party analytics, must support IE11.",
+          "items": { "type": "string" },
+          "examples": [
+            [
+              "Must use the internal auth service at auth.internal — no custom JWT implementation",
+              "No external analytics or tracking SDKs",
+              "All API responses must be logged to the company audit log service"
+            ]
+          ]
+        }
+      }
+    },
+
+    "output": {
+      "type": "object",
+      "description": "Controls where agents write generated project files. Normally auto-set — only override if you need a custom path.",
+      "additionalProperties": false,
+      "properties": {
+        "dir": {
+          "type": "string",
+          "description": "Output directory for all generated project files. Auto-set to output/{project.name}/ if left empty. All agents write here per the coding-standards.md rule. Override only if needed.",
+          "examples": ["output/customer-portal", "projects/new-service"]
+        }
+      }
+    }
+  }
+}

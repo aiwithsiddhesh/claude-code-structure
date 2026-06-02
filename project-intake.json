@@ -1,0 +1,51 @@
+{
+  "$schema": "./project-intake.schema.json",
+
+  "project": {
+    "name": "",
+    "display_name": "",
+    "description": "",
+    "type": ""
+  },
+
+  "stack": {
+    "frontend": "",
+    "backend": "",
+    "database": "",
+    "auth": "",
+    "hosting": "",
+    "ai_ml": false,
+    "ai_ml_type": ""
+  },
+
+  "requirements": {
+    "features": [],
+    "out_of_scope": [],
+    "non_functional": {
+      "expected_users": "",
+      "performance": "",
+      "security_level": "standard"
+    }
+  },
+
+  "timeline": {
+    "deadline": "",
+    "milestones": []
+  },
+
+  "team": {
+    "agents_needed": [],
+    "skip_agents": []
+  },
+
+  "context": {
+    "existing_codebase": false,
+    "codebase_notes": "",
+    "reference_docs": [],
+    "constraints": []
+  },
+
+  "output": {
+    "dir": ""
+  }
+}

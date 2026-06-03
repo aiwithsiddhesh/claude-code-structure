@@ -30,6 +30,22 @@ You are the agent resuming this task. Orient completely from TASK.md before writ
   - `BLOCKED` → run the BLOCKED resume flow (Step 1B below) before proceeding
   - `REWORK` → run the REWORK resume flow (Step 1C below) before proceeding
 
+**Artifact authority check** — after reading the Status from TASK.md, also read the matching task row in `output/{project}/SPRINT.md` and compare the status values:
+
+- If TASK.md status and SPRINT.md status **agree** → proceed normally.
+- If they **disagree** → do NOT proceed with work. Output:
+  ```
+  ⚠️ STATUS CONFLICT — TASK.md and SPRINT.md disagree on task {task-id}.
+  TASK.md says: {status from TASK.md}
+  SPRINT.md says: {status from SPRINT.md}
+
+  SPRINT.md is the authoritative source. Resolve before continuing:
+  1. If SPRINT.md is correct → update TASK.md to match, then resume.
+  2. If TASK.md is correct → update SPRINT.md to match (orchestrator should confirm).
+  3. If unsure → contact hiring-manager-orchestrator.
+  ```
+  Do not begin Step 2 until the conflict is resolved.
+
 ### Step 1B — BLOCKED Resume Flow
 
 Read the latest BLOCKED checkpoint entry in TASK.md.

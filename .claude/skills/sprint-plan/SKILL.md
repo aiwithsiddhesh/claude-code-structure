@@ -52,6 +52,22 @@ Select items to commit this sprint based on:
 
 Items NOT committed stay in the backlog for the next sprint — do not remove them.
 
+**Design gate — apply to every committed item:**
+
+| Complexity | Design requirement |
+|---|---|
+| Small | No design doc required |
+| Medium | `/design-doc` required — mark `design-doc: pending` unless already done |
+| Large | `/design-doc` required — mark `design-doc: pending` unless already done |
+| XL | `/design-doc` required — mark `design-doc: pending` unless already done |
+
+For each Medium/Large/XL item being committed, check whether `design-doc: done` or `design-doc: waived` is already recorded on the item in SPRINT.md:
+- **If not recorded** → add `design-doc: pending` to the item row and emit: `⚠️ DESIGN REQUIRED: {item-id} ({complexity}) — run /design-doc before any development begins on this item.`
+- **If `design-doc: done`** → no action needed.
+- **If `design-doc: waived`** → the orchestrator has explicitly waived the requirement. Record the waiver reason in SPRINT.md if not already present.
+
+A sprint with Medium/Large/XL items all showing `design-doc: pending` is still valid to commit — the design gate blocks `/task-start`, not sprint planning. But the sprint plan output must clearly list all pending design docs so the orchestrator knows what must be done before development begins.
+
 ---
 
 ## Step 4 — Produce Sprint Plan
@@ -67,10 +83,10 @@ Output this sprint plan:
 
 ### Committed Items
 
-| ID | Item | Complexity | Agent | Dependencies | Acceptance Criteria |
-|---|---|---|---|---|---|
-| S{N}-1 | {item} | Medium | backend-engineer | none | {criteria} |
-| S{N}-2 | {item} | Small | frontend-engineer | S{N}-1 | {criteria} |
+| ID | Item | Complexity | Agent | Dependencies | Design Doc | Acceptance Criteria |
+|---|---|---|---|---|---|---|
+| S{N}-1 | {item} | Medium | backend-engineer | none | pending | {criteria} |
+| S{N}-2 | {item} | Small | frontend-engineer | S{N}-1 | n/a | {criteria} |
 
 ### Agent Assignments This Sprint
 

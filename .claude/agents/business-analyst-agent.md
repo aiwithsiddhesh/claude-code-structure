@@ -58,10 +58,13 @@ Business problem description, stakeholder context, user research (if available),
 
 Before handing off to development, requirements must be:
 - ✓ Clearly stated and unambiguous
-- ✓ Testable with measurable acceptance criteria
+- ✓ Testable with measurable acceptance criteria (no vague language — "fast", "works", "user-friendly" are not acceptable)
 - ✓ Prioritized
-- ✓ Free of major open questions
+- ✓ Free of major open questions (all `[ ]` items resolved or explicitly deferred with an owner)
 - ✓ Reviewed and agreed by stakeholder
+- ✓ Each story maps to one agent and has ≤ 6 acceptance criteria
+
+**Note**: This DoR checklist is the *output* of your work — not a self-certification shortcut. It is independently re-verified at `/task-start`. If a story fails DoR at task-start, it returns here for correction. Build the stories to pass that independent check on the first try.
 
 
 ## Story Sizing for Context Windows

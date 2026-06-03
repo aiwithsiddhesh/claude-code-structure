@@ -51,7 +51,7 @@ A reusable multi-agent system for orchestrating software, AI, automation, and pr
 |---|---|
 | `/agent-registry` | Full agent reference with assignment decision matrix and trigger conditions |
 | `/start-project [description]` | Kick off a new project — validates intake, maps stack to agents, initializes SPRINT.md |
-| `/design-doc [feature name]` | Technical design document — run before development begins on any non-trivial feature |
+| `/design-doc [feature name]` | Technical design document — required for Medium/Large/XL items; blocks on unresolved open questions (`⚠️ DESIGN BLOCKED`) until all questions have an owner and resolution |
 | `/handoff [from] to [to]` | Structured handoff covering completed work, pending work, risks, and next actions |
 | `/release-checklist [name]` | Pre-release quality gate — validates sprint state and produces GO / NO-GO decision |
 | `/status-report [project]` | Project status snapshot — reads SPRINT.md and produces per-agent progress report |

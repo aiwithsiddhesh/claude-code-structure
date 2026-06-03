@@ -23,9 +23,10 @@ Every handoff between agents MUST include:
 
 ### Before Development Starts
 - Requirements are documented, testable, and unambiguous
-- Acceptance criteria are defined and measurable
+- Acceptance criteria are defined and measurable (no vague language — verified independently at `/task-start`)
 - API contracts are agreed upon between frontend and backend
 - DoR (Definition of Ready) is confirmed by the Business Analyst
+- For Medium/Large/XL items: `/design-doc` completed (all open questions resolved) OR explicitly waived by the orchestrator with a recorded reason — `design-doc: done | waived` must appear in the item row in SPRINT.md before `/task-start` may proceed
 
 ### Before QA Starts
 - Feature is implemented and `/code-review` APPROVED result is recorded in TASK.md Completion entry

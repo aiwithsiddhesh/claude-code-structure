@@ -36,9 +36,25 @@ Do not leave any section empty. If a section is not applicable (e.g., no DB chan
 
 Output the completed design document.
 
-Then confirm:
+Then inspect Section 5 (Risks & Mitigations) **Open questions** for any unchecked `- [ ]` items.
+
+**If one or more unchecked open questions exist:**
+```
+⚠️ DESIGN BLOCKED — {N} open question(s) remain in Section 5.
+
+Each question must have an assigned owner and be resolved before development starts.
+Steps to unblock:
+1. Assign an owner to each [ ] item in Section 5.
+2. Resolve the question with that owner.
+3. Mark resolved items [x] with a one-line resolution note.
+4. Re-run /design-doc {feature name} to confirm all questions are closed.
+
+Do NOT run /handoff or begin any development task until this design is unblocked.
+```
+
+**If all open questions are resolved (no unchecked `- [ ]` items remain):**
 ```
 ✅ Design document generated for {feature name}.
-Review open questions (Section 5) and resolve with owners before development starts.
+All open questions resolved. Design is approved for development.
 Next: /handoff business-analyst-agent to [lead engineer] once the design is approved, or assign directly to the development agent.
 ```

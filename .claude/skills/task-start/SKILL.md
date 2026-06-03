@@ -32,14 +32,33 @@ You are the agent assigned to this task. Work through each step before writing a
 
 ---
 
-## Step 2 — Understand the Task Fully
+## Step 2 — Understand the Task Fully and Verify DoR
 
 From SPRINT.md extract:
 - Task description and acceptance criteria
 - Dependencies (what must exist before this task starts)
 - Which files or endpoints this task will produce
 
-If acceptance criteria are missing or unclear → stop and request clarification from `business-analyst-agent` before proceeding. Do not guess.
+Then run the **Definition of Ready (DoR) gate** — verify ALL of the following before proceeding:
+
+| Check | Pass condition |
+|---|---|
+| Criteria present | At least one acceptance criterion exists |
+| Criteria are measurable | No criterion uses vague language ("fast", "user-friendly", "works correctly") — each must name a concrete, verifiable outcome |
+| No unresolved open questions | The story contains no `[ ]` open question markers left unanswered |
+| Story is correctly sized | ≤ 6 acceptance criteria; maps to one agent end-to-end |
+
+If **any check fails**, stop immediately and output:
+```
+❌ DoR NOT MET — {specific failing check}.
+
+{Explain exactly what is vague, missing, or oversized.}
+
+Return to business-analyst-agent to resolve before starting this task.
+Do NOT create TASK.md until DoR passes.
+```
+
+Do not guess at missing criteria or rephrase vague ones — the BA agent must clarify them.
 
 ---
 

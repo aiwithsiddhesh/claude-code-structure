@@ -315,11 +315,11 @@ Acceptance Criteria:
 - Given [context], when [action], then [outcome]
 ```
 
-Before development begins on any non-trivial feature:
+Before development begins on any **Medium, Large, or XL** feature (required) or any Small feature where ambiguity exists (optional):
 ```
 /design-doc [feature-name]
 ```
-Produces a technical design document covering: problem statement, scope, proposed solution with architecture diagram, API contract, DB changes, alternatives considered, risks, and a review checklist.
+Produces a technical design document covering: problem statement, scope, proposed solution with architecture diagram, API contract, DB changes, alternatives considered, risks, and a review checklist. If open questions remain in Section 5, the skill emits `⚠️ DESIGN BLOCKED` and prevents the handoff to development until all questions are resolved and assigned an owner. The `/sprint-plan` skill tracks this as `design-doc: pending | done | waived` on each committed item.
 
 ### Step 4 — Sprint Planning
 

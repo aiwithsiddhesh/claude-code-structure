@@ -155,7 +155,14 @@ After producing the plan:
 
 ## Step 7 — Initialize SPRINT.md
 
-**Re-run guard:** Before creating SPRINT.md, check whether `output/{project.name}/SPRINT.md` already exists.
+```
+!`cat "output/$(cat project-intake.json 2>/dev/null | python3 -c 'import sys,json; d=json.load(sys.stdin); print(d["project"]["name"])' 2>/dev/null)/SPRINT.md" 2>/dev/null && echo "SPRINT_EXISTS" || echo "SPRINT_NOT_FOUND"`
+```
+
+**Re-run guard:** Read the output of the command above.
+- If it shows `SPRINT_NOT_FOUND` → proceed to create SPRINT.md below.
+- If it shows `SPRINT_EXISTS` and the content contains any Current Sprint data or Sprint History entries beyond the initial template → stop and output the overwrite warning.
+- If it shows `SPRINT_EXISTS` but the content is the unmodified template (no sprint data, no bugs) → proceed to create SPRINT.md (safe to re-initialize).
 
 If it already exists and contains sprint state (any Current Sprint or Sprint History content beyond the initial template state), stop and output:
 ```
@@ -179,4 +186,3 @@ Create `output/{project.name}/SPRINT.md` using the template at `assets/sprint-md
 - Backlog rows — one row per item in `requirements.features[]`, all with BA Status = `needs-BA`, Complexity and Ambiguity as `-` (to be filled by BA agent and sprint planning)
 
 Confirm: `✅ SPRINT.md initialized at output/{project.name}/SPRINT.md. {count} backlog items loaded from intake with BA Status = needs-BA. Next step: business-analyst-agent must write user stories and set BA Status = ready before /sprint-plan can commit items.`
-

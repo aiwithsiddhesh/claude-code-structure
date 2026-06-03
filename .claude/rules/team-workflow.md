@@ -199,6 +199,8 @@ Sprint items have two levels of status that must not be confused:
 - **SPRINT.md Status** — tracks sprint-level commitment and progress (set by orchestrator and dev agents via skills)
 - **TASK.md Status** — tracks task execution state (set by dev agents and QA)
 
+> Note: The sprint-level **Status** field in the sprint header (`**Status**: ACTIVE`) is distinct from the per-item Status column. Sprint-level statuses: `ACTIVE` (sprint running) and `COMPLETED` (sprint closed by /sprint-review). Per-item statuses: `COMMITTED`, `IN PROGRESS`, `READY FOR QA`, `DONE`, `BLOCKED`, `REWORK`, `ON_HOLD`.
+
 ### SPRINT.md Item Status Values
 
 | Status | Set By | Meaning |

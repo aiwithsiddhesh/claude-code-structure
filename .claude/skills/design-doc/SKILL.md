@@ -93,7 +93,13 @@ Go to Step 5 (SPRINT.md sync — BLOCKED state) and stop.
 
 If Section 0 is fully resolved (no unchecked items), check Section 9 (Approval Record):
 
-If Section 9 is blank or shows no named approver:
+Section 9 is considered **not yet approved** if ANY of the following are true:
+- The Approver field is blank
+- The Approver field contains a template placeholder: `[name/role]`, `[person]`, `[approver]`, or any text in square brackets
+- The Date approved field is blank or contains `[date]`
+- The Chosen option field is blank or contains `[which option was selected]`
+
+If Section 9 is not yet approved, output:
 
 ```
 ⚠️ DESIGN PENDING APPROVAL — Ambiguity resolved, awaiting human approval.

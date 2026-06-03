@@ -79,9 +79,9 @@ Update the **Status** field in TASK.md to `BLOCKED` and append this to the **Che
 
 ---
 
-**If the task is in REWORK this session** (QA rejected), use the REWORK checkpoint format:
+**If the task is in REWORK this session** (QA rejected and manual-functional-sdet has already set Status = REWORK in TASK.md), use the REWORK checkpoint format:
 
-Update the **Status** field in TASK.md to `REWORK` (set by `manual-functional-sdet`, not the dev agent) and append this:
+Do NOT change the Status field — `manual-functional-sdet` has already set it to `REWORK`. Append this checkpoint entry:
 
 ```markdown
 ### Checkpoint {N} — {today} [REWORK]
@@ -188,13 +188,17 @@ Also update SPRINT.md: change the task status to `READY FOR QA` in the Current S
 
 ## Step 6 — Sync SPRINT.md Progress
 
-Update the task row in SPRINT.md Current Sprint table:
-- If partial: status = `IN PROGRESS ({N}/{total} steps)`
-- If complete: status = `READY FOR QA`
+Update the task row in SPRINT.md Current Sprint table based on the checkpoint type written in Step 4:
+
+- If **BLOCKED checkpoint** was written: set status = `BLOCKED`
+- If **REWORK checkpoint** was written: set status = `REWORK` (only if manual-functional-sdet set this — do not set REWORK yourself; see authority rules)
+- If **standard checkpoint** (partial): set status = `IN PROGRESS ({N}/{total} steps)`
+- If **completion flow** (all steps done): set status = `READY FOR QA`
 
 Confirm:
 ```
 ✅ Checkpoint {N} written for {task-id}.
 Progress: {done}/{total} steps complete.
+SPRINT.md updated: status = {status}.
 Resume: /task-resume {project} {task-id}
 ```

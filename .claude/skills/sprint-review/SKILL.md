@@ -21,7 +21,7 @@ You are the **hiring-manager-orchestrator**. Work through each step.
 
 ## Step 1 — Validate Preconditions
 
-- There must be an active sprint (Status = `IN PROGRESS`). If not, stop: `❌ No active sprint found. Run /sprint-plan {project-name} to start one.`
+- There must be an active sprint (Status = `ACTIVE`). If not, stop: `❌ No active sprint found. Run /sprint-plan {project-name} to start one.`
 
 ---
 
@@ -37,12 +37,14 @@ For each item in the current sprint, determine status from its TASK.md:
 | **BLOCKED** | TASK.md Status field = `BLOCKED` — latest checkpoint has a BLOCKED entry with blocker description and owner |
 | **ON_HOLD** | TASK.md Status field = `ON_HOLD` — set by orchestrator, hold condition must be reviewed |
 | **REWORK** | TASK.md Status field = `REWORK` — QA rejected, defects documented in latest checkpoint |
-| **NOT STARTED** | No TASK.md exists for this item |
+| **COMMITTED** | SPRINT.md Status = `COMMITTED` and no TASK.md exists — item was planned but /task-start was never run. This is expected and not a STATUS CONFLICT. |
+| **NOT STARTED** | No TASK.md exists AND SPRINT.md Status is not `COMMITTED` — item has no record of ever being started or planned. Flag for orchestrator review. |
 
 **Status conflict check** — after reading each item's TASK.md status, compare it against the status shown in the Current Sprint table in SPRINT.md:
 
-- If both sources agree → proceed with the status as determined.
-- If they disagree → flag immediately before proceeding with any other analysis on that item:
+- If SPRINT.md Status = `COMMITTED` and no TASK.md exists → this is **not a conflict**. Classify as COMMITTED and proceed.
+- If both sources otherwise agree → proceed normally.
+- If they disagree → flag as STATUS CONFLICT before proceeding with any other analysis on that item:
   ```
   ⚠️ STATUS CONFLICT on {task-id}: TASK.md says {X}, SPRINT.md says {Y}. Resolve before closing sprint.
   ```
@@ -138,7 +140,21 @@ Items moved back to backlog for next sprint:
 Apply these updates to `output/{project-name}/SPRINT.md`:
 
 1. Move current sprint to **Sprint History** section with COMPLETED status and the review summary
-2. Move all PARTIAL and NOT STARTED items back to **Backlog** with a note: `[Carry-forward from Sprint {N}]` and what remains
+2. Move the following items back to **Backlog** with a note: `[Carry-forward from Sprint {N}]` and what remains:
+   - All items with TASK.md Status = `IN PROGRESS` (partial work done)
+   - All items with TASK.md Status = `BLOCKED` (unresolved dependency)
+   - All items with TASK.md Status = `ON_HOLD` (orchestrator hold continues)
+   - All items with TASK.md Status = `REWORK` (QA rejected, fix incomplete)
+   - All items with SPRINT.md Status = `COMMITTED` and no TASK.md (never started)
+   - All items with SPRINT.md Status = `READY FOR QA` with no QA sign-off (QA not completed this sprint)
+   - All items with status `NOT STARTED` (no TASK.md and no COMMITTED record)
+
+   **Do NOT silently drop any in-scope item.** Every item must end up in exactly one of: Sprint History (DONE), or Backlog (carry-forward). If an item's status is ambiguous, record it in Backlog with status `NEEDS REVIEW`.
+
+   When writing a carry-forward Backlog row, preserve all columns from the Current Sprint row (ID, Item, Complexity, Ambiguity, Agent, Dependencies, Design Doc, Acceptance Criteria) and set Source = `carry-forward-sprint-{N}`, BA Status = `ready` (criteria already written), Notes = `[Carry-forward from Sprint {N}] {reason}`.
+
+   Write each carry-forward row with all 9 Backlog columns populated:
+   | {original-ID} | {item name} | carry-forward-sprint-{N} | {original priority} | {original complexity} | {original ambiguity} | ready | {acceptance criteria} | [Carry-forward from Sprint {N}] {reason why incomplete} |
 3. Clear the **Current Sprint** section and set: `Sprint {N+1} not started. Run /sprint-plan {project-name} to begin.`
 4. Update **Project > Current Sprint** counter to {N+1}
 

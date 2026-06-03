@@ -29,6 +29,14 @@ You are the agent resuming this task. Orient completely from TASK.md before writ
   - `ON_HOLD` → `🛑 This task is ON_HOLD — set by the orchestrator. You must NOT work on it. Contact hiring-manager-orchestrator to find out when the hold will be released and what the condition is.`
   - `BLOCKED` → run the BLOCKED resume flow (Step 1B below) before proceeding
   - `REWORK` → run the REWORK resume flow (Step 1C below) before proceeding
+  - `REJECTED` → The bug fix was rejected by verification. This is a bug fix task, not a feature task.
+    Set BUG-{N}.md Status to `IN FIX` to acknowledge the rejection, then resume:
+    ```
+    BUG-{N} fix resumed after REJECTED verification.
+    Set BUG-{N}.md Status = IN FIX.
+    Read the latest Verification History entry for the rejection reason and evidence.
+    Then proceed to Step 2 to orient from the last checkpoint.
+    ```
 
 **Artifact authority check** — after reading the Status from TASK.md, also read the matching task row in `output/{project}/SPRINT.md` and compare the status values:
 
@@ -39,10 +47,10 @@ You are the agent resuming this task. Orient completely from TASK.md before writ
   TASK.md says: {status from TASK.md}
   SPRINT.md says: {status from SPRINT.md}
 
-  SPRINT.md is the authoritative source. Resolve before continuing:
-  1. If SPRINT.md is correct → update TASK.md to match, then resume.
-  2. If TASK.md is correct → update SPRINT.md to match (orchestrator should confirm).
-  3. If unsure → contact hiring-manager-orchestrator.
+  TASK.md is authoritative for task execution state. SPRINT.md is authoritative for sprint membership. Resolve before continuing:
+  1. If TASK.md status reflects actual work state (e.g., TASK.md=BLOCKED because a real dependency exists) → update SPRINT.md to match TASK.md, then resume.
+  2. If SPRINT.md status is correct and TASK.md is clearly stale (e.g., TASK.md still shows IN PROGRESS from a previous session but all steps are done) → update TASK.md to match SPRINT.md.
+  3. If unsure which is correct → do NOT update either. Output: `⚠️ STATUS CONFLICT unresolved on {task-id}. Contact hiring-manager-orchestrator to adjudicate before resuming work.`
   ```
   Do not begin Step 2 until the conflict is resolved.
 

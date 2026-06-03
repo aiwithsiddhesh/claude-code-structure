@@ -138,7 +138,7 @@ Add a one-line reference to the **Bug Log** table in SPRINT.md:
 
 If Critical or High in current sprint: also add to **Current Sprint** committed items:
 ```
-| BUG-{N} | {title} [BUG] | {severity} | {agent} | OPEN |
+| BUG-{N} | {title} [BUG] | N/A | N/A | {agent} | none | n/a | {acceptance criteria for fix} | COMMITTED | Severity: {severity} |
 ```
 
 If Critical, output this alert:

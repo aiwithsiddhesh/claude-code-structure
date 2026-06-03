@@ -14,11 +14,11 @@ argument-hint: "[project-name]"
 ```
 
 ```
-!`for f in output/$ARGUMENTS/.tasks/*.md; do [ -f "$f" ] && echo "=== $f ===" && cat "$f"; done 2>/dev/null || echo "NO_TASK_FILES"`
+!`files=$(ls output/$ARGUMENTS/.tasks/*.md 2>/dev/null); if [ -z "$files" ]; then echo "NO_TASK_FILES"; else for f in $files; do echo "=== $f ==="; cat "$f"; done; fi`
 ```
 
 ```
-!`for f in output/$ARGUMENTS/.bugs/BUG-*.md; do [ -f "$f" ] && echo "=== $f ===" && cat "$f"; done 2>/dev/null || echo "NO_BUG_FILES"`
+!`files=$(ls output/$ARGUMENTS/.bugs/BUG-*.md 2>/dev/null); if [ -z "$files" ]; then echo "NO_BUG_FILES"; else for f in $files; do echo "=== $f ==="; cat "$f"; done; fi`
 ```
 
 ---
@@ -49,6 +49,9 @@ Before running the checklist:
 4. **Read BUG-N.md for every open bug.** Check status directly from BUG-N.md, not only from the SPRINT.md Bug Log. A bug is not closed unless BUG-N.md Status = `CLOSED`. `VERIFIED` alone is not sufficient for release — regression test must be in CI (CLOSED).
 
 5. **Check for any Critical or High bugs where BUG-N.md Status is not `CLOSED`.** If any exist → `❌ Cannot release — Critical/High bug {BUG-N} is {status} (not CLOSED). Regression test must be passing in CI.`
+
+6. **QA sign-off required for all in-scope items.** For each item that is DONE in TASK.md, verify the Completion entry contains a `manual-functional-sdet` sign-off. If any in-scope item with Status = DONE has no QA sign-off in its TASK.md Completion entry → hard stop:
+   `❌ Cannot release — manual-functional-sdet sign-off not found in TASK.md Completion entry for {task-id}. QA must validate and sign off before release.`
 
 If preconditions are not met, stop and report what must be resolved before re-running.
 
@@ -105,6 +108,11 @@ Work through each category below. Mark ✅ Pass, ❌ Fail, or ⚠️ Needs Revie
 ## Checklist Result
 
 **Release Decision**: [ ] GO  [ ] NO-GO  [ ] CONDITIONAL GO
+
+**Release Decision Rules** (these override orchestrator judgment):
+- If ANY item in QA Completeness is ❌ Fail → decision MUST be NO-GO. This is not overridable.
+- If ALL items in QA Completeness are ✅ Pass and all other sections have no ❌ Fail → decision may be GO or CONDITIONAL GO.
+- CONDITIONAL GO is only valid when all ❌ items are in Documentation, Infrastructure, or Release Readiness sections — never when QA Completeness or Development Completeness items are ❌.
 
 **Conditions (if conditional)**: [list any items that must be resolved]
 

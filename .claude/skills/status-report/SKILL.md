@@ -14,15 +14,11 @@ argument-hint: "[project-name]"
 ```
 
 ```
-!`ls output/$ARGUMENTS/.tasks/*.md 2>/dev/null | head -20 || echo "NO_TASKS_YET"`
+!`files=$(ls output/$ARGUMENTS/.tasks/*.md 2>/dev/null); if [ -z "$files" ]; then echo "NO_TASK_FILES"; else for f in $files; do echo "=== $f ==="; cat "$f"; done; fi`
 ```
 
 ```
-!`for f in output/$ARGUMENTS/.tasks/*.md; do [ -f "$f" ] && echo "=== $f ===" && cat "$f"; done 2>/dev/null || echo "NO_TASK_FILES"`
-```
-
-```
-!`for f in output/$ARGUMENTS/.bugs/BUG-*.md; do [ -f "$f" ] && echo "=== $f ===" && cat "$f"; done 2>/dev/null || echo "NO_BUG_FILES"`
+!`files=$(ls output/$ARGUMENTS/.bugs/BUG-*.md 2>/dev/null); if [ -z "$files" ]; then echo "NO_BUG_FILES"; else for f in $files; do echo "=== $f ==="; cat "$f"; done; fi`
 ```
 
 ---

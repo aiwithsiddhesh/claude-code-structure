@@ -23,7 +23,7 @@ You are the **hiring-manager-orchestrator**. Work through each step using the SP
 
 Before planning a new sprint, verify:
 
-1. **No active sprint**: Status must not be `IN PROGRESS`. If there is an active sprint, stop: `❌ Sprint {N} is still active. Run /sprint-review to close it before planning the next sprint.`
+1. **No active sprint**: Status must not be `ACTIVE`. If the Current Sprint section shows `**Status**: ACTIVE`, stop: `❌ Sprint {N} is still active. Run /sprint-review to close it before planning the next sprint.`
 
 2. **No duplicate sprint in progress**: If the Current Sprint section already shows a sprint number and dates matching today, stop: `❌ Sprint {N} was already committed this session. Do not run /sprint-plan again without first running /sprint-review.`
 
@@ -129,7 +129,16 @@ If **Ambiguity = Medium or High** on any item, regardless of Complexity (includi
 **For each committed item, check whether `design-doc: done` or `design-doc: waived` is already recorded:**
 - **If not recorded and design doc required** → add `design-doc: pending` and emit the DESIGN REQUIRED or AMBIGUITY REVIEW REQUIRED warning.
 - **If `design-doc: done`** → no action needed.
-- **If `design-doc: waived`** → orchestrator has explicitly waived. Record the waiver in SPRINT.md Human Decisions table with: reason, approver, date. Waiver is not valid without this record.
+- **If `design-doc: waived`** → verify the waiver is already recorded in the SPRINT.md Human Decisions table with: reason, approver, and date. If the Human Decisions table has no matching waiver entry for this item, the waiver is not valid — output:
+  ```
+  ❌ WAIVER NOT RECORDED — {item-id} shows design-doc: waived but no matching entry exists in the Human Decisions table.
+
+  Before committing this item, the orchestrator must add a row to the Human Decisions table:
+  | {item-id} | Design doc waived | Waived | [reason] | Waived | [specific reason] | [approver name/role] | [date] |
+
+  Add the waiver record to SPRINT.md, then re-run /sprint-plan.
+  ```
+  Do not commit the item until the waiver is recorded.
 - **If `design-doc: blocked`** → item may be committed but CANNOT start development. `/design-doc` must be unblocked first.
 
 A sprint with pending design docs is valid to commit — the design gate blocks `/task-start`, not sprint planning. But the sprint plan output must clearly list all pending design docs.
@@ -145,7 +154,7 @@ Output this sprint plan:
 
 **Sprint**: {N}
 **Dates**: {start} → {end}
-**Status**: IN PROGRESS
+**Status**: ACTIVE
 
 ### Committed Items
 

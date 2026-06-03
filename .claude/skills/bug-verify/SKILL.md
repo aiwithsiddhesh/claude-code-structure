@@ -98,7 +98,7 @@ Update the **Regression Test** section:
 
 **Status**: Ready for automation
 **Agent**: automation-sdet-agent
-**Action required**: Write regression test based on reproduction steps above. Mark CLOSED when CI passes.
+**Action required**: Write regression test based on reproduction steps above. When the test passes in CI, set BUG-{N}.md Status to CLOSED and update SPRINT.md Bug Log from VERIFIED to CLOSED.
 ```
 
 Update SPRINT.md Bug Log — change status from `READY FOR VERIFICATION` to `VERIFIED`.
@@ -107,9 +107,11 @@ Output:
 ```
 ✅ BUG-{N} VERIFIED.
 Assigned to automation-sdet-agent for regression test.
-automation-sdet-agent: read output/{project}/.bugs/BUG-{N}.md
-and write a regression test for the reproduction steps. 
-Mark CLOSED when the test passes in CI.
+automation-sdet-agent: read output/{project}/.bugs/BUG-{N}.md and write a regression test for the reproduction steps.
+When the test passes in CI:
+1. Set BUG-{N}.md Status to `CLOSED`
+2. **Update SPRINT.md Bug Log — change status from `VERIFIED` to `CLOSED`**
+3. Confirm: `✅ BUG-{N} CLOSED. Regression test passing in CI at {test file path}.`
 ```
 
 ---
@@ -150,11 +152,12 @@ Affected criteria: {which criteria failed}
 Evidence: {specific observation}
 
 Dev agent next steps:
-1. Run /task-resume {project} BUG-{N} (or /task-start if no TASK.md exists)
-2. Fix the issues documented in Verification History Attempt {N}
-3. Set BUG-{N}.md Status to IN FIX when actively working
-4. Set Status to READY FOR VERIFICATION when complete
-5. Run /bug-verify {project} BUG-{N} again
+1. If a TASK.md already exists for BUG-{N}: manually set BUG-{N}.md Status to `IN FIX`, then run /task-resume {project} BUG-{N} to resume work
+2. If no TASK.md exists: run /task-start {project} BUG-{N} to begin the fix
+3. Fix the issues documented in Verification History Attempt {N}
+4. Set BUG-{N}.md Status to IN FIX when actively working
+5. Set Status to READY FOR VERIFICATION when complete
+6. Run /bug-verify {project} BUG-{N} again
 
 Status is now REJECTED. Dev agent must explicitly set to IN FIX when work resumes.
 ```

@@ -101,6 +101,12 @@ your-project/
 │       ├── status-report/             ← /status-report
 │       └── retrospective/             ← /retrospective
 │
+├── assets/                            ← templates used by /design-doc, /start-project, /bug-triage
+│   ├── design-doc-template.md         ← filled by /design-doc for each feature
+│   ├── assignment-plan.md             ← filled by /start-project at project kickoff
+│   ├── sprint-md-template.md          ← used to initialize output/{project}/SPRINT.md
+│   └── bug-template.md                ← filled by /bug-triage for each BUG-{N}.md
+│
 └── output/                            ← all generated project code lives here
     └── {project-name}/
         ├── SPRINT.md                  ← sprint state (single source of truth)
@@ -319,7 +325,7 @@ Before development begins on any **Medium, Large, or XL** feature (required) or 
 ```
 /design-doc [feature-name]
 ```
-Produces a technical design document covering: problem statement, scope, proposed solution with architecture diagram, API contract, DB changes, alternatives considered, risks, and a review checklist. If open questions remain in Section 5, the skill emits `⚠️ DESIGN BLOCKED` and prevents the handoff to development until all questions are resolved and assigned an owner. The `/sprint-plan` skill tracks this as `design-doc: pending | done | waived` on each committed item.
+Produces a technical design document covering: problem statement, scope, proposed solution with architecture diagram, API contract, DB changes, alternatives considered, risks, and a review checklist. If open questions remain in Section 5, the skill emits `⚠️ DESIGN BLOCKED` and prevents the handoff to development until all questions are resolved and assigned an owner. The `/sprint-plan` skill tracks design doc status as `design-doc: pending | done | waived` on each committed item. **Enforcement happens at `/task-start`**: Medium/Large/XL items with `design-doc: pending` cannot proceed to development — `/task-start` will block until `/design-doc` is complete.
 
 ### Step 4 — Sprint Planning
 

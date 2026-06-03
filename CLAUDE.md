@@ -22,7 +22,7 @@ A reusable multi-agent system for orchestrating software, AI, automation, and pr
 
 ## Development Approach
 
-- **Document First** — Define agents in `.claude/agents/`, rules in `.claude/rules/`, skills in `.claude/skills/` before implementing behavior.
+- **Document First** — Define agents in `.claude/agents/`, rules in `.claude/rules/`, skills in `.claude/skills/` before implementing behavior. Three rules are **path-scoped** and only load when editing matching files: `frontend-patterns.md` (React/TS/Tailwind — triggers on `.tsx/.ts/.jsx/.js`), `api-patterns.md` (REST conventions — triggers on routes/controllers/handlers), `database.md` (migrations/schema/Prisma — triggers on migration and model files). Always-on rules load every session: `team-workflow.md`, `agent-coordination.md`, `coding-standards.md`, `git-workflow.md`, `security.md`.
 - **Handoff Clarity** — Every stage states who inputs, who processes, who receives output. Use `/handoff` skill at every transition.
 - **Quality Gates** — Measurable acceptance criteria at each workflow stage, defined in `.claude/rules/team-workflow.md`.
 - **Example-Driven** — Run `/start-project` on a real scenario to validate the framework; if it doesn't produce a coherent plan, revise the intake or rules.

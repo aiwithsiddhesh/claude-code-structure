@@ -37,7 +37,34 @@ Do not proceed until reproduction steps are known. A bug without reproduction st
 
 ---
 
-## Step 2 — Determine BUG Number
+## Step 2 — Duplicate Detection
+
+Before assigning a new bug number, check the existing `.bugs/` listing for likely duplicates.
+
+Compare the new bug's title, affected area/component, and reproduction steps against all existing BUG-N.md files that have Status `OPEN`, `IN FIX`, `READY FOR VERIFICATION`, or `REJECTED`.
+
+A likely duplicate exists when two or more of the following match:
+- Same feature/component/endpoint affected
+- Same observable symptom described in Actual Behaviour
+- Reproduction steps that would trigger the same code path
+
+If a likely duplicate is found, stop and output:
+```
+⚠️ POSSIBLE DUPLICATE — BUG-{existing N} may already cover this issue.
+
+Existing bug: BUG-{N} — {title}
+Status: {status}
+Similarity: {what matches — feature, symptom, or repro steps}
+
+Options:
+1. If this is the same bug: add a note to BUG-{N}.md rather than creating a new bug.
+2. If this is a different bug despite the similarity: confirm "create new bug" to proceed.
+3. If you're unsure: review BUG-{N}.md reproduction steps before deciding.
+```
+
+Wait for confirmation before continuing. Only proceed if the reporter confirms this is a new and distinct bug.
+
+## Step 3 — Determine BUG Number
 
 Read the `.bugs/` listing from above.
 - If no bugs exist yet → this is BUG-001
@@ -45,7 +72,7 @@ Read the `.bugs/` listing from above.
 
 ---
 
-## Step 3 — Classify Severity
+## Step 4 — Classify Severity
 
 | Severity | Definition | Example |
 |---|---|---|
@@ -61,7 +88,7 @@ Read the `.bugs/` listing from above.
 
 ---
 
-## Step 4 — Assign Owner Agent
+## Step 5 — Assign Owner Agent
 
 | Bug Location | Owner Agent |
 |---|---|
@@ -75,7 +102,7 @@ Read the `.bugs/` listing from above.
 
 ---
 
-## Step 5 — Assign to Sprint
+## Step 6 — Assign to Sprint
 
 | Severity | Assignment |
 |---|---|
@@ -88,21 +115,21 @@ Override: if fixing requires reworking an already QA-verified item → run `/cha
 
 ---
 
-## Step 6 — Create BUG-{N}.md
+## Step 7 — Create BUG-{N}.md
 
-Create `output/{project}/.bugs/BUG-{N}.md` using the template at `assets/bug-template.md`. Fill in all `{placeholder}` values from the bug details collected in Steps 1–5:
-- `{N}` — bug number from Step 2
+Create `output/{project}/.bugs/BUG-{N}.md` using the template at `assets/bug-template.md`. Fill in all `{placeholder}` values from the bug details collected in Steps 1–6:
+- `{N}` — bug number from Step 3
 - `{short descriptive title}` — clear one-line description of the defect
-- `{Critical / High / Medium / Low}` — severity from Step 3
+- `{Critical / High / Medium / Low}` — severity from Step 4
 - `{Functional / Security / Performance / UI / Data}` — type based on bug location
 - `{project}` — project name from $ARGUMENTS
-- `{dev agent}` — assigned owner from Step 4
+- `{dev agent}` — assigned owner from Step 5
 - All reproduction steps, frequency, environment, expected/actual behaviour — from Step 1
 - Sprint number — from current SPRINT.md state
 
 ---
 
-## Step 7 — Update SPRINT.md
+## Step 8 — Update SPRINT.md
 
 Add a one-line reference to the **Bug Log** table in SPRINT.md:
 ```

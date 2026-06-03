@@ -28,6 +28,29 @@ Ask the user to describe the change if not already stated. You need:
 - **Source**: who is requesting (stakeholder, product owner, discovered during dev)
 - **Urgency**: does this block current sprint work or can it wait?
 
+## Step 1B — Duplicate CR Detection
+
+Before proceeding, scan the **Change Requests** table in SPRINT.md for any existing CR that:
+- Requests the same or substantially overlapping change
+- Affects the same features or items
+- Was submitted by the same source recently (same sprint)
+
+If a likely duplicate is found:
+```
+⚠️ POSSIBLE DUPLICATE CHANGE REQUEST — CR-{N} may already cover this request.
+
+Existing CR: CR-{N} — {description}
+Status: {decision or pending}
+Similarity: {what overlaps}
+
+Options:
+1. If this is the same change: reference CR-{N} rather than creating a new record.
+2. If this is a different change: confirm "create new CR" to proceed.
+3. If the prior CR was rejected and this is a re-submission: confirm and note it as a re-submission of CR-{N}.
+```
+
+Wait for confirmation before creating a new CR record.
+
 ---
 
 ## Step 2 — Classify Change Size
@@ -118,6 +141,7 @@ Based on size, authority, and impact, recommend one of three decisions:
 **Project**: {project-name}
 **Sprint at time of request**: Sprint {N}
 **Requested by**: {source}
+**Re-submission of**: CR-{prior N} / New request
 
 ### What Changed
 **Original**: {original requirement}
@@ -134,11 +158,20 @@ Based on size, authority, and impact, recommend one of three decisions:
 **Conflicts with constraints**: Yes ({detail}) / No
 
 ### Decision
+
 **Decision**: ABSORB / DEFER / REJECT
 **Impact level**: Critical / High / Medium / Low
 **SLA**: {required decision timeline per impact level}
-**Decided by**: {orchestrator alone / orchestrator + product owner}
-**Reason**: {justification — must be specific enough for requestor to understand}
+
+**Options considered**:
+1. {Option A — e.g., Absorb into current sprint}
+2. {Option B — e.g., Defer to next sprint}
+3. {Option C — e.g., Reject — out of scope}
+
+**Chosen option**: {which option}
+**Rationale**: {specific reasoning — why this option over the others; must not be generic}
+**Decided by**: {orchestrator alone / orchestrator + product owner name}
+**Decision date**: {today}
 
 **Tasks set to ON_HOLD pending this decision**:
 {List task IDs and agents, or "None — Trivial/Small change, work continues"}
@@ -156,7 +189,7 @@ Based on size, authority, and impact, recommend one of three decisions:
 - Tasks released from ON_HOLD: {list — deferred change unblocks them}
 
 **If REJECT**:
-- Reason: {clear explanation}
+- Reason: {clear explanation specific enough for requestor to understand}
 - Alternative: {any partial approach or future consideration}
 - Tasks released from ON_HOLD: {list — rejection unblocks them}
 ```
@@ -167,8 +200,13 @@ Based on size, authority, and impact, recommend one of three decisions:
 
 Append the change request record above to the **Change Requests** section of `output/{project-name}/SPRINT.md`.
 
+Also update the **Human Decisions** table in SPRINT.md with a one-line entry:
+```
+| CR-{N} | Change request: {brief description} | {ABSORB/DEFER/REJECT} | {options listed} | {chosen option} | {rationale summary} | {decider} | {today} |
+```
+
 If ABSORB: also update the **Current Sprint** committed items table with the new or extended item.
 If DEFER: add the item to the **Backlog** section with `[CR-{N}]` tag.
-If REJECT: no backlog update needed — the record alone is sufficient.
+If REJECT: no backlog update needed — the Human Decisions entry is sufficient.
 
 Confirm: `✅ Change Request CR-{N} recorded. Decision: {decision}. SPRINT.md updated.`

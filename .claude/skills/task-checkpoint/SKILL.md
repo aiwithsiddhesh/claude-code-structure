@@ -151,7 +151,14 @@ If none: "None"}
 
 ## Step 5 — Completion Flow (all steps done)
 
-If all steps are checked off, **run `/code-review {project} {task-id}` first** before writing the Completion entry.
+**Duplicate completion guard:** Before writing a Completion entry, check whether one already exists in the TASK.md Completion section. If a Completion entry is already present (contains "### Completion"), stop:
+```
+⚠️ Completion entry already exists for {task-id}. This task was already marked complete on {date from existing entry}.
+If the task was rejected by QA and is in REWORK, do not write a new Completion entry — fix the defects first, then re-run /task-checkpoint.
+If this is an error, check TASK.md manually.
+```
+
+If all steps are checked off and no Completion entry exists, **run `/code-review {project} {task-id}` first** before writing the Completion entry.
 
 - If code review result is `CHANGES REQUESTED` → do NOT write a Completion entry. Fix the identified issues, then re-run `/code-review`.
 - If code review result is `APPROVED` → write the Completion entry below.

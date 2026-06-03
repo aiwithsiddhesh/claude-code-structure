@@ -147,19 +147,36 @@ Use the template at `assets/assignment-plan.md`. Fill in all `{placeholder}` val
 
 After producing the plan:
 1. Confirm the output directory will be created: `output/{project.name}/`
-2. Remind the user to run `/design-doc [feature-name]` before development begins on each feature
-3. Save key project facts to agent memory for use in future sessions
+2. Remind the user that `/sprint-plan` must NOT be run until business-analyst-agent has set BA Status = `ready` for all items to be committed
+3. Remind the user to run `/design-doc [feature-name]` for all Medium/Large/XL features and any feature with Ambiguity Medium/High before development begins
+4. Save key project facts to agent memory for use in future sessions
 
 ---
 
 ## Step 7 — Initialize SPRINT.md
+
+**Re-run guard:** Before creating SPRINT.md, check whether `output/{project.name}/SPRINT.md` already exists.
+
+If it already exists and contains sprint state (any Current Sprint or Sprint History content beyond the initial template state), stop and output:
+```
+⚠️ SPRINT.md already exists at output/{project.name}/SPRINT.md and contains project state.
+
+Running /start-project again would overwrite existing sprint history, task assignments, and bug logs.
+
+If you want to restart this project from scratch, manually delete output/{project.name}/SPRINT.md first, then re-run /start-project.
+If you want to continue an existing project, run /sprint-plan {project.name} instead.
+```
+
+Do not overwrite an existing initialized SPRINT.md without explicit user action.
+
+If SPRINT.md does not exist or is empty/uninitialized, proceed:
 
 Create `output/{project.name}/SPRINT.md` using the template at `assets/sprint-md-template.md`. Fill in all `{placeholder}` values from the intake data:
 - `{project.name}` and `{project.display_name or project.name}` — from intake
 - `{today}` — current date
 - `{timeline.deadline}` — from intake
 - `{calculated: deadline / sprint length, rounded up}` — compute from deadline
-- Backlog rows — one row per item in `requirements.features[]`
+- Backlog rows — one row per item in `requirements.features[]`, all with BA Status = `needs-BA`, Complexity and Ambiguity as `-` (to be filled by BA agent and sprint planning)
 
-Confirm: `✅ SPRINT.md initialized at output/{project.name}/SPRINT.md. {count} backlog items loaded from intake. Run /sprint-plan {project.name} to begin Sprint 1.`
+Confirm: `✅ SPRINT.md initialized at output/{project.name}/SPRINT.md. {count} backlog items loaded from intake with BA Status = needs-BA. Next step: business-analyst-agent must write user stories and set BA Status = ready before /sprint-plan can commit items.`
 

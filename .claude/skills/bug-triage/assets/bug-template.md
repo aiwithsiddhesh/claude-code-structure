@@ -1,6 +1,12 @@
 # BUG-{N} — {short descriptive title}
 
 **Status**: OPEN
+<!-- Valid status values: OPEN | IN FIX | READY FOR VERIFICATION | REJECTED | VERIFIED | CLOSED
+     State machine: OPEN → IN FIX → READY FOR VERIFICATION → VERIFIED → CLOSED
+                                                            ↓           ↑
+                                                         REJECTED ──────┘
+     REJECTED means fix failed verification; dev resumes with /task-resume or /task-start, then sets IN FIX when actively working again.
+     A bug is not fixed until CLOSED. VERIFIED means fix works but regression test not yet in CI. -->
 **Severity**: {Critical / High / Medium / Low}
 **Type**: {Functional / Security / Performance / UI / Data}
 **Project**: {project}
@@ -49,14 +55,19 @@
 
 ---
 
-## Verification
+## Verification History
 
-**Status**: Pending fix completion
+Record every verification attempt here. Never overwrite — append.
+
+### Attempt 1
+
+**Date**: (filled in by manual-functional-sdet)
 **Agent**: manual-functional-sdet
-**Skill**: `/bug-verify {project} BUG-{N}` when fix is READY FOR VERIFICATION
-**Date verified**: 
 **Result**: VERIFIED / REJECTED
-**Notes**: 
+**Reason** (if REJECTED): {exactly what still fails — which acceptance criterion, what evidence}
+**Evidence**: {specific output, error message, or observation}
+**Affected criteria**: {which criteria failed}
+**Resubmission instructions**: {what the dev agent must fix before resubmitting}
 
 ---
 

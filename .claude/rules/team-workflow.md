@@ -3,10 +3,45 @@
 ## Project Lifecycle
 
 ```
-Intake → Planning → Development → QA → Release → Retrospective
+Intake → BA Readiness → Sprint Planning → Design/Ambiguity Gate → Task Start (DoR) → Development → Code Review → QA → Bug Verify/Regression → Sprint Review → Release → Retrospective
 ```
 
-Quality gates must pass before advancing each stage.
+Quality gates must pass before advancing each stage. Gates are front-loaded: failures caught at intake and planning cost far less than failures caught at QA or release.
+
+## Artifact Authority and Precedence
+
+When multiple documents exist, apply these precedence rules:
+
+- **SPRINT.md** is authoritative for: sprint membership, priority, assignment, and release scope.
+- **TASK.md** is authoritative for: task execution details, atomic step progress, and checkpoint history.
+- **BUG-N.md** is authoritative for: bug lifecycle state, verification history, and regression test status.
+- **Design docs** are authoritative for: architecture decisions, API contracts, and approved tradeoffs.
+
+**If status values conflict across documents, skills must stop and report STATUS CONFLICT** rather than proceeding. The reporting format is:
+```
+⚠️ STATUS CONFLICT on {id}: {source A} says {status}, {source B} says {status}.
+Resolve before proceeding. Update the lower-authority source to match the higher-authority source, or contact hiring-manager-orchestrator if the true state is unclear.
+```
+
+Never silently use one source while ignoring a known conflict in another.
+
+## Quality Gate Map
+
+| Gate | Skill / Point | Failure Class Caught |
+|---|---|---|
+| Intake validation | `/start-project` Step 1 | Missing/malformed fields, invalid stack config |
+| BA readiness | business-analyst-agent → SPRINT.md BA Status | Vague features, no acceptance criteria before sprint commit |
+| Sprint commit readiness | `/sprint-plan` Step 3 | Items without `BA Status = ready` entering a sprint |
+| Ambiguity gate | `/sprint-plan` Step 5 + `/task-start` Step 2 | Items with Ambiguity Medium/High entering development unresolved |
+| Design gate | `/design-doc` + SPRINT.md design-doc column | Missing API/data/security decisions, unapproved architecture |
+| Human approval gate | `/design-doc` Section 9 | Design approved by author only — no independent human judgment |
+| DoR gate | `/task-start` Step 2 | Vague criteria, oversized stories, missing BA status, unresolved ambiguity |
+| Code review | `/code-review` | Correctness, security, quality, test coverage gaps |
+| QA gate | `manual-functional-sdet` | Feature doesn't meet acceptance criteria, regressions |
+| Bug verification | `/bug-verify` | Fix doesn't work; state recorded as REJECTED with exact evidence |
+| Regression gate | `automation-sdet-agent` | Bug recurs; no CI coverage |
+| Sprint review | `/sprint-review` | Status drift, incomplete items silently carried forward |
+| Release gate | `/release-checklist` | Unreleased bugs, missing QA sign-off, infra not ready |
 
 ## Handoff Protocol
 
@@ -21,12 +56,19 @@ Every handoff between agents MUST include:
 
 ## Quality Gates
 
-### Before Development Starts
+### Before Sprint Commitment (BA Readiness Gate)
+- `BA Status = ready` for every item being committed — `/sprint-plan` must not commit `needs-BA` or `blocked` items
+- Acceptance criteria exist for every committed item — criteria must be measurable and verifiable, not vague
+- Ambiguity rating (Low/Medium/High) is assigned to every committed item in SPRINT.md
+- Items with Ambiguity Medium/High must have `/design-doc` planned before sprint commitment
+
+### Before Development Starts (Design + DoR Gate)
 - Requirements are documented, testable, and unambiguous
 - Acceptance criteria are defined and measurable (no vague language — verified independently at `/task-start`)
 - API contracts are agreed upon between frontend and backend
-- DoR (Definition of Ready) is confirmed by the Business Analyst
-- For Medium/Large/XL items: `/design-doc` completed (all open questions resolved) OR explicitly waived by the orchestrator with a recorded reason — `design-doc: done | waived` must appear in the item row in SPRINT.md before `/task-start` may proceed
+- DoR (Definition of Ready) is confirmed by the Business Analyst (`BA Status = ready`)
+- For Medium/Large/XL items: `/design-doc` completed (all open questions resolved, Section 9 human approval recorded) OR explicitly waived by the orchestrator with a recorded reason — `design-doc: done | waived` must appear in SPRINT.md before `/task-start` may proceed
+- For ANY item with Ambiguity = Medium or High, regardless of Complexity: `/design-doc` must complete before `/task-start` — Small items are not exempt when ambiguity is unresolved
 
 ### Before QA Starts
 - Feature is implemented and `/code-review` APPROVED result is recorded in TASK.md Completion entry
@@ -148,7 +190,7 @@ Every project runs in weekly sprints. The cycle is:
 Security vulnerabilities and data loss bugs are always Critical regardless of scope.
 
 ### Artifact Authority
-When multiple documents exist (design doc, handoff, status report, SPRINT.md), **SPRINT.md is always the most current state**. If SPRINT.md contradicts a design doc or handoff, SPRINT.md wins. Stale artifacts should be noted in SPRINT.md but not deleted.
+Precedence when documents conflict — see the full precedence rules in the **Artifact Authority and Precedence** section at the top of this file. SPRINT.md is authoritative for sprint membership and scope. TASK.md is authoritative for task execution state. BUG-N.md is authoritative for bug lifecycle state. If any two sources disagree, the skill must stop and report STATUS CONFLICT — not silently pick one. Stale artifacts should be noted in SPRINT.md but not deleted.
 
 ## Task State Machine
 
@@ -201,20 +243,24 @@ Every bug moves through these states in `BUG-{N}.md`. No skipping.
 
 ```
 OPEN → IN FIX → READY FOR VERIFICATION → VERIFIED → CLOSED
-              ↑                        |
-              └──── REJECTED ──────────┘
+                                       ↓
+                                    REJECTED → (dev resumes) → IN FIX → READY FOR VERIFICATION → ...
 ```
 
 | State | Set by | Meaning |
 |---|---|---|
 | `OPEN` | `/bug-triage` | Bug documented, assigned, not yet being fixed |
-| `IN FIX` | Dev agent (via `/task-start`) | Dev agent is actively working the fix |
+| `IN FIX` | Dev agent (resumes via `/task-resume` or `/task-start` after REJECTED) | Dev agent is actively working the fix |
 | `READY FOR VERIFICATION` | Dev agent | Fix complete, awaiting manual-functional-sdet |
-| `REJECTED` | `/bug-verify` | Fix failed verification, returned to dev agent |
-| `VERIFIED` | `/bug-verify` | Fix confirmed, awaiting regression test |
+| `REJECTED` | `/bug-verify` | Fix failed verification — status is set to REJECTED (not IN FIX). Dev agent must explicitly set to IN FIX when actively resuming work. |
+| `VERIFIED` | `/bug-verify` | Fix confirmed, awaiting regression test in CI |
 | `CLOSED` | automation-sdet-agent | Regression test written and passing in CI |
 
-**A bug is not fixed until CLOSED. VERIFIED means the fix works but recurrence is not yet prevented.**
+**State authority:**
+- `/bug-verify` sets `REJECTED` when a fix fails — NOT `IN FIX`. This is intentional: REJECTED records that the fix was reviewed and found insufficient. The dev agent must acknowledge the rejection by resuming work (`/task-resume` or `/task-start`) and explicitly setting the status to `IN FIX` when actively working again. This prevents silent re-entry — a REJECTED bug cannot be resubmitted without the dev agent first acknowledging the rejection reason.
+
+**A bug is not fixed until CLOSED. VERIFIED means the fix works but recurrence is not yet prevented by a CI regression test.**
 
 Bug files live at `output/{project}/.bugs/BUG-{N}.md`.
 SPRINT.md Bug Log holds one-line references only — always read BUG-{N}.md for full state.
+`/status-report` and `/release-checklist` must read BUG-N.md directly — the SPRINT.md Bug Log is a summary only and may lag behind.

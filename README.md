@@ -138,7 +138,7 @@ The framework manages three distinct boundaries:
 └─────────────────────────────────────────┘
 ```
 
-Each layer has its own state document. When they conflict, the lower layer (SPRINT.md) always wins over older artifacts (design docs, handoffs).
+Each layer has its own state document. When sources conflict, defined precedence applies: SPRINT.md is authoritative for sprint membership and scope; TASK.md is authoritative for task execution state; BUG-{N}.md is authoritative for bug lifecycle state. Skills stop and report `STATUS CONFLICT` rather than silently picking one source.
 
 ### Context Loading Architecture
 
@@ -303,15 +303,18 @@ Open `project-intake.json`. VS Code will show autocomplete and validation automa
 ```
 
 The skill reads `project-intake.json`, validates all required fields, auto-sets `output.dir` to `output/{project.name}/`, maps stack to agents, and produces:
-- Full Agent Assignment Plan with tasks per agent
-- Delivery Sequence (Phase 1: Requirements → Phase 2: Development → Phase 3: QA/Release)
+- Full Agent Assignment Plan with tasks per agent and a full Quality Gate Map
+- Delivery Sequence (Phase 1: BA Readiness → Phase 2: Design → Phase 3: Development → Phase 4: QA/Release)
 - Quality gates per phase
 - Timeline feasibility assessment
-- `output/{project.name}/SPRINT.md` initialized with all features in the backlog
+- `output/{project.name}/SPRINT.md` initialized with all features in the backlog, each with `BA Status = needs-BA`
+
+> **Re-run safe:** `/start-project` will not overwrite an existing initialized SPRINT.md. It stops and asks you to confirm before proceeding.
 
 ### Step 3 — Requirements and Design
 
-`business-analyst-agent` converts intake features into user stories:
+**BA readiness must complete before sprint planning.** `business-analyst-agent` converts intake features into user stories, assigns each a priority, size estimate, and DoR status, and updates `BA Status` in SPRINT.md to `ready` for each item:
+
 ```
 As a [user type]
 I want to [action]
@@ -321,11 +324,17 @@ Acceptance Criteria:
 - Given [context], when [action], then [outcome]
 ```
 
-Before development begins on any **Medium, Large, or XL** feature (required) or any Small feature where ambiguity exists (optional):
+Once items are `ready`, run design docs before committing to a sprint:
+
 ```
 /design-doc [feature-name]
 ```
-Produces a technical design document covering: problem statement, scope, proposed solution with architecture diagram, API contract, DB changes, alternatives considered, risks, and a review checklist. If open questions remain in Section 5, the skill emits `⚠️ DESIGN BLOCKED` and prevents the handoff to development until all questions are resolved and assigned an owner. The `/sprint-plan` skill tracks design doc status as `design-doc: pending | done | waived` on each committed item. **Enforcement happens at `/task-start`**: Medium/Large/XL items with `design-doc: pending` cannot proceed to development — `/task-start` will block until `/design-doc` is complete.
+
+Required for: **Medium, Large, or XL** features, and **any item with Ambiguity = Medium or High** regardless of size (Small items are not exempt when ambiguity is unresolved).
+
+`/design-doc` performs an **active ambiguity assessment** (Section 0) — it explicitly identifies missing API decisions, missing data/schema decisions, unresolved tradeoffs, and stakeholder questions. If any are open, it emits `⚠️ DESIGN BLOCKED`. If ambiguity is resolved but no human approval exists yet, it emits `⚠️ DESIGN PENDING APPROVAL` — a named non-author approver must complete Section 9 (Approval Record) with options considered, chosen option, rationale, and date before the design is approved.
+
+**Every run of `/design-doc` automatically syncs its state back to SPRINT.md**: `design-doc: done`, `design-doc: pending-approval`, or `design-doc: blocked`. `/task-start` reads this column and blocks development until the state is `done` or `waived`.
 
 ### Step 4 — Sprint Planning
 
@@ -333,7 +342,11 @@ Produces a technical design document covering: problem statement, scope, propose
 /sprint-plan customer-portal
 ```
 
-The orchestrator reads `SPRINT.md`, assesses backlog items for complexity and dependencies, commits a realistic scope for the week, assigns agents, and writes the sprint plan to `SPRINT.md`.
+The orchestrator reads `SPRINT.md` and:
+1. **BA Readiness Check** — items with `BA Status = needs-BA` or `blocked` cannot be committed. Only `ready` items proceed.
+2. **Complexity + Ambiguity classification** — each item gets both ratings.
+3. **Design and Ambiguity Gate** — Medium/Large/XL items require `design-doc: done/waived`; any item with Ambiguity Medium/High requires it too regardless of size.
+4. Commits realistic scope, assigns agents, writes plan to SPRINT.md.
 
 ### Step 5 — Development (Task Lifecycle)
 
@@ -388,7 +401,11 @@ When a dev agent completes a bug fix:
 ```
 /bug-verify customer-portal BUG-001
 ```
-`manual-functional-sdet` re-runs reproduction steps and validates acceptance criteria. Result is **VERIFIED** or **REJECTED** with exact reason. On VERIFIED, `automation-sdet-agent` picks up the test case and writes a regression test, marking the bug **CLOSED**.
+`manual-functional-sdet` re-runs reproduction steps and validates acceptance criteria. Result is **VERIFIED** or **REJECTED** with exact reason and evidence appended to the Verification History (each attempt is a permanent record, never overwritten).
+
+On **REJECTED**: status is set to `REJECTED` — not `IN FIX`. The dev agent must explicitly resume work (`/task-resume` or `/task-start`) and set status to `IN FIX` when actively working again. This prevents silent re-entry without acknowledging the rejection reason.
+
+On **VERIFIED**: `automation-sdet-agent` picks up the test case and writes a regression test, marking the bug **CLOSED**.
 
 `automation-sdet-agent` also self-triggers from manual QA notes: test cases marked `AUTOMATION READY` are picked up without waiting for orchestrator assignment.
 
@@ -420,10 +437,20 @@ Covers: delivery summary vs planned scope, timeline variance, What Went Well / W
 
 ```
 /start-project
+     │ (initializes SPRINT.md — all items BA Status = needs-BA)
+     ▼
+business-analyst-agent writes user stories
+  → sets BA Status = ready for each item in SPRINT.md
+     │
+     ▼
+/design-doc [feature]  (for M/L/XL items and Medium/High ambiguity items)
+  → syncs design-doc: done/pending-approval/blocked to SPRINT.md
      │
      ▼
 /sprint-plan ──────────────────────────────────────────┐
-     │                                                   │ (repeat each sprint)
+  (only ready items + resolved ambiguity can be         │ (repeat each sprint)
+   committed)                                           │
+     │                                                   │
      ▼                                                   │
 [Agents work tasks]                                      │
   /task-start {project} {task-id}                        │
@@ -435,9 +462,11 @@ Covers: delivery summary vs planned scope, timeline variance, What Went Well / W
      │                                                   │
      ▼                                                   │
 /sprint-review ─────────────────────────────────────────┘
+  (reads TASK.md for each item, detects STATUS CONFLICTS)
      │
      ▼ (backlog empty, all QA signed off)
 /release-checklist
+  (reads SPRINT.md + all TASK.md + all BUG-N.md)
      │
      ▼
 /retrospective
@@ -445,7 +474,7 @@ Covers: delivery summary vs planned scope, timeline variance, What Went Well / W
 
 **Sprint rules:**
 - New work never enters an active sprint without a `/change-request` decision
-- `SPRINT.md` is the single source of truth — wins over all other artifacts
+- `SPRINT.md` is authoritative for sprint membership and scope; `TASK.md` is authoritative for task execution state; `BUG-N.md` is authoritative for bug state — conflicts between sources trigger `STATUS CONFLICT`, not silent resolution
 - Incomplete items return to backlog at review — never auto-carry silently
 - BLOCKED and ON_HOLD tasks require an explicit orchestrator decision at sprint review — never silently carried
 - `manual-functional-sdet` removal from `skip_agents` is blocked — QA is mandatory
@@ -544,8 +573,11 @@ Dev agent reads BUG-{N}.md acceptance criteria
   manual-functional-sdet re-runs exact reproduction steps
   Validates all acceptance criteria
        │
-       ├── REJECTED → returned to dev agent with exact reason
-       │              status → IN FIX
+       ├── REJECTED → Verification History entry appended with exact reason,
+       │              evidence, affected criteria, resubmission instructions
+       │              status → REJECTED (NOT IN FIX)
+       │              Dev agent must /task-resume or /task-start, then
+       │              explicitly set status → IN FIX when actively working
        │
        └── VERIFIED → automation-sdet-agent triggered
                       Writes regression test from reproduction steps
@@ -560,7 +592,7 @@ Dev agent reads BUG-{N}.md acceptance criteria
 | `OPEN` | `/bug-triage` | Documented, assigned, not yet in fix |
 | `IN FIX` | Dev agent | Actively being fixed |
 | `READY FOR VERIFICATION` | Dev agent | Fix complete, awaiting QA |
-| `REJECTED` | `/bug-verify` | Verification failed, returned to dev |
+| `REJECTED` | `/bug-verify` | Verification failed — dev must explicitly resume and set to IN FIX when working |
 | `VERIFIED` | `/bug-verify` | Fix confirmed, awaiting regression test |
 | `CLOSED` | `automation-sdet-agent` | Regression test written and passing in CI |
 
@@ -573,20 +605,20 @@ Dev agent reads BUG-{N}.md acceptance criteria
 | Command | Agent | Purpose |
 |---|---|---|
 | `/agent-registry` | Any | Full agent reference with capabilities, triggers, and assignment decision matrix |
-| `/start-project` | Orchestrator | Validate intake, map stack to agents, produce delivery plan, initialize SPRINT.md |
-| `/design-doc [feature]` | Lead engineer | Technical design doc before development — problem, solution, API contract, risks, testing plan |
+| `/start-project` | Orchestrator | Validate intake, map stack to agents, produce delivery plan, initialize SPRINT.md with all items as `BA Status = needs-BA`. Will not overwrite an existing initialized SPRINT.md. |
+| `/design-doc [feature]` | Lead engineer | Required for M/L/XL items and any item with Ambiguity Medium/High. Performs active ambiguity assessment (Section 0). Requires human approval in Section 9 — author cannot self-approve. Syncs `design-doc` state back to SPRINT.md on every run. |
 | `/handoff [from] to [to]` | Any | Structured handoff covering completed work, pending work, acceptance criteria, and next actions |
-| `/sprint-plan [project]` | Orchestrator | Commit backlog items to next sprint |
-| `/sprint-review [project]` | Orchestrator | Close sprint, verify TASK.md completion, explicitly decide BLOCKED/ON_HOLD items |
-| `/change-request [project]` | Orchestrator | Assess mid-sprint requirement change with authority and SLA rules; sets ON_HOLD where needed |
-| `/bug-triage [project]` | Orchestrator + SDET | Classify bug, create BUG-{N}.md, assign |
-| `/bug-verify [project] [bug-id]` | manual-functional-sdet | Verify fix: VERIFIED or REJECTED |
-| `/task-start [project] [task-id]` | Dev agent | Break task into atomic steps, create TASK.md with Status IN PROGRESS |
-| `/task-checkpoint [project] [task-id]` | Dev agent | Write session checkpoint — standard, BLOCKED, or REWORK flows |
-| `/task-resume [project] [task-id]` | Dev agent | Resume task — checks state (IN PROGRESS / BLOCKED / REWORK / ON_HOLD) |
-| `/code-review [project] [task-id]` | Dev agent | Structured code review — APPROVED or CHANGES REQUESTED; required before READY FOR QA |
-| `/status-report [project]` | Orchestrator | Reads SPRINT.md and produces per-agent progress, blockers, risks, and decisions needed |
-| `/release-checklist [project]` | Orchestrator | Validates sprint state then runs pre-release gate — GO / NO-GO / CONDITIONAL GO |
+| `/sprint-plan [project]` | Orchestrator | Enforces BA readiness gate (no `needs-BA` items committed); classifies Complexity and Ambiguity; blocks unresolved Medium/High ambiguity; detects duplicate active sprint |
+| `/sprint-review [project]` | Orchestrator | Close sprint — reads TASK.md for every item, detects STATUS CONFLICTS, explicitly decides BLOCKED/ON_HOLD items |
+| `/change-request [project]` | Orchestrator | Assess mid-sprint requirement change — detects duplicate CRs; records structured decision with options/rationale/decider/date in SPRINT.md Human Decisions |
+| `/bug-triage [project]` | Orchestrator + SDET | Check for duplicates first; classify bug; create BUG-{N}.md; assign |
+| `/bug-verify [project] [bug-id]` | manual-functional-sdet | Verify fix — VERIFIED or REJECTED; on REJECTED sets status to REJECTED (not IN FIX) and appends to Verification History |
+| `/task-start [project] [task-id]` | Dev agent | Enforces BA Status, Ambiguity, and design-doc DoR checks before creating TASK.md; records DoR verification result in TASK.md |
+| `/task-checkpoint [project] [task-id]` | Dev agent | Write session checkpoint — standard, BLOCKED, or REWORK flows; guards against duplicate Completion entries |
+| `/task-resume [project] [task-id]` | Dev agent | Resume task — checks state (IN PROGRESS / BLOCKED / REWORK / ON_HOLD); detects STATUS CONFLICTS |
+| `/code-review [project] [task-id]` | Dev agent | Structured code review — APPROVED or CHANGES REQUESTED; hiring-manager-orchestrator may never be reviewer |
+| `/status-report [project]` | Orchestrator | Reads SPRINT.md + all TASK.md + all BUG-N.md; detects STATUS CONFLICTS; shows dual-source status per task and bug |
+| `/release-checklist [project]` | Orchestrator | Reads SPRINT.md + all TASK.md + all BUG-N.md; requires BUG-N.md CLOSED (not just VERIFIED) for release — GO / NO-GO / CONDITIONAL GO |
 | `/retrospective [project]` | Orchestrator | Post-delivery review with action items |
 
 ---
@@ -597,13 +629,17 @@ Three living documents track project state. Together they answer "where are we r
 
 ### `output/{project}/SPRINT.md`
 
-The single source of truth for sprint state. Read by all agents before making decisions. Wins over any other artifact when they conflict.
+The authoritative source for sprint membership, priority, assignment, and release scope. All agents read this before making decisions. When SPRINT.md and TASK.md/BUG-N.md disagree on status, skills stop and report `STATUS CONFLICT`.
 
 **Sections:**
 - Project metadata (start date, deadline, sprint length, current sprint number)
-- Current Sprint (committed items, agent assignments, status per item)
-- Backlog (all uncommitted work, including carry-forwards and deferred change requests)
-- Change Requests (CR-N log with decision and rationale)
+- **Readiness Issues** — BA readiness failures and unresolved open questions blocking sprint commitment
+- **Design Decisions** — design doc approvals, waivers, and blocked states; updated by `/design-doc`
+- **Human Decisions** — every human decision recorded with options considered, chosen option, rationale, decider, date
+- **State Conflicts** — status mismatches between SPRINT.md and TASK.md/BUG-N.md; cleared when resolved
+- Current Sprint (committed items with Complexity, Ambiguity, Agent, Design Doc, Acceptance Criteria, Status columns)
+- Backlog (all uncommitted work with BA Status, Ambiguity, and Acceptance Criteria columns)
+- Change Requests (CR-N log with structured decision record)
 - Bug Log (one-line reference per bug, links to BUG-{N}.md)
 - Sprint History (completed sprints with metrics)
 
@@ -622,16 +658,16 @@ One file per sprint task. Created by `/task-start`, updated by `/task-checkpoint
 
 ### `output/{project}/.bugs/BUG-{N}.md`
 
-One file per bug. Created by `/bug-triage`, updated through the lifecycle.
+One file per bug. Created by `/bug-triage`, updated through the lifecycle. Authoritative for bug state — always read this file, not the SPRINT.md Bug Log summary.
 
 **Sections:**
-- Bug identity (ID, severity, type, status, dates, assignments)
+- Bug identity (ID, severity, type, status, dates, assignments) — status comment shows full state machine
 - Reproduction steps + frequency + environment
 - Expected vs actual behaviour
 - Root cause hypothesis
 - Acceptance criteria for fix
 - Fix section (files changed, description — filled by dev agent)
-- Verification section (result, notes — filled by manual-functional-sdet)
+- **Verification History** (append-only; each `/bug-verify` attempt adds a new entry with result, reason, evidence, affected criteria, resubmission instructions)
 - Regression test section (test file, CI status — filled by automation-sdet-agent)
 
 ---
@@ -744,9 +780,11 @@ Then add to the skills table in `CLAUDE.md` and the Available Skills table in th
 ### Starting a project
 ```
 1. Fill project-intake.json
-2. /start-project
-3. /sprint-plan {project}
-4. [For each task] /task-start {project} {task-id}
+2. /start-project                          ← all items initialized as BA Status = needs-BA
+3. [business-analyst-agent writes stories] ← sets BA Status = ready for each item
+4. /design-doc [feature]                   ← for M/L/XL and Medium/High ambiguity items
+5. /sprint-plan {project}                  ← only ready items with resolved ambiguity commit
+6. [For each task] /task-start {project} {task-id}
 ```
 
 ### Completing a task (all steps done)

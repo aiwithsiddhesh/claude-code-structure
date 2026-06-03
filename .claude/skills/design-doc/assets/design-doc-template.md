@@ -2,8 +2,44 @@
 
 **Author**: [agent/person]
 **Date**: [today]
-**Status**: Draft | In Review | Approved
+**Status**: Draft | In Review | Approved | BLOCKED
 **Stakeholders**: [list agents/people who should review]
+**SPRINT.md sync**: Not yet synced | Synced — design-doc: done | Synced — design-doc: blocked
+
+---
+
+## 0. Ambiguity Assessment
+
+**Complete this section before any other section.** Identify every unknown, gap, and decision that must be resolved before development can start. Be specific — do not template-fill your way through this.
+
+### Missing information (must be answered before design is complete)
+
+- [ ] [Question] — Owner: [person/agent] — Required decision: [what must be decided]
+- [ ] [Question] — Owner: [person/agent] — Required decision: [what must be decided]
+
+### Missing API decisions
+
+- [ ] [Which endpoints? What request/response shape? Who owns the contract?]
+
+### Missing data/schema decisions
+
+- [ ] [Which tables? What columns? Migration strategy? Rollback?]
+
+### Missing security decisions
+
+- [ ] [Auth model? PII handling? Input validation scope?]
+
+### Unresolved tradeoffs
+
+- [ ] [Option A vs Option B — who decides and by when?]
+
+### Stakeholder/product questions
+
+- [ ] [Questions that require product owner or stakeholder input before dev starts]
+
+**Ambiguity level**: Low (0 open items) | Medium (1–3 open items) | High (4+ open items)
+
+If Ambiguity is Medium or High, this design MUST be resolved before `/task-start` may proceed, regardless of item Complexity.
 
 ---
 
@@ -85,10 +121,6 @@ For each alternative you ruled out, explain why:
 |---|---|---|---|
 | [risk] | H/M/L | H/M/L | [how to mitigate] |
 
-**Open questions** (must be resolved before development starts):
-- [ ] [Question] — Owner: [person]
-- [ ] [Question] — Owner: [person]
-
 ---
 
 ## 6. Implementation Plan
@@ -126,13 +158,41 @@ For each alternative you ruled out, explain why:
 
 ---
 
-## Review Checklist
+## 9. Approval Record
 
-Before approving this design, reviewers should confirm:
+This section must be filled in by a human, product owner, or lead engineer before this design is marked Approved. The author may not self-approve.
+
+**Decision required**: Should this design proceed to development as written?
+
+**Options considered**:
+1. [Option A — e.g., proceed as designed]
+2. [Option B — e.g., alternative approach X]
+3. [Option C — e.g., defer / descope]
+
+**Chosen option**: [which option was selected]
+
+**Rationale**: [why this option over the alternatives — must be specific, not "seemed best"]
+
+**Approver**: [name/role — must be a human, product owner, or lead engineer; not the author]
+
+**Date approved**: [date]
+
+**Conditions / caveats**: [any conditions attached to approval, or "None"]
+
+> If this section is blank or filled by the author themselves, the design is NOT approved.
+> Run `/design-doc [feature-name]` to re-evaluate after getting approval.
+
+---
+
+## 10. Review Checklist
+
+Before marking this design Approved, the approver should confirm:
+- [ ] Section 0 Ambiguity Assessment is complete — all items resolved or explicitly accepted
 - [ ] Problem statement is clear and correct
 - [ ] Scope boundaries are explicit
-- [ ] API contract is complete
-- [ ] Database changes are migration-safe
+- [ ] API contract is complete (or marked N/A with reason)
+- [ ] Database changes are migration-safe (or marked N/A with reason)
 - [ ] Security implications addressed (auth, input validation, PII)
-- [ ] All open questions have owners
-- [ ] Test plan covers acceptance criteria
+- [ ] All open questions in Section 0 have owners and resolution notes
+- [ ] Test plan covers all acceptance criteria
+- [ ] Section 9 Approval Record is filled in by a non-author approver

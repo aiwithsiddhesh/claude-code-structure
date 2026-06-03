@@ -36,7 +36,10 @@ You are the agent assigned to this task. Work through each step before writing a
 
 From SPRINT.md extract:
 - Task description and acceptance criteria
+- Complexity rating
+- Ambiguity rating
 - Dependencies (what must exist before this task starts)
+- Design Doc column value
 - Which files or endpoints this task will produce
 
 Then run the **Definition of Ready (DoR) gate** — verify ALL of the following before proceeding:
@@ -47,9 +50,11 @@ Then run the **Definition of Ready (DoR) gate** — verify ALL of the following 
 | Criteria are measurable | No criterion uses vague language ("fast", "user-friendly", "works correctly") — each must name a concrete, verifiable outcome |
 | No unresolved open questions | The story contains no `[ ]` open question markers left unanswered |
 | Story is correctly sized | ≤ 6 acceptance criteria; maps to one agent end-to-end |
-| Design doc cleared | If this item is Medium, Large, or XL in SPRINT.md, the design-doc column must show `done` or `waived` — not `pending` or blank |
+| Design doc cleared (M/L/XL) | If Complexity is Medium, Large, or XL, Design Doc column must show `done` or `waived` — not `pending`, `pending-approval`, `blocked`, or blank |
+| Ambiguity resolved | If Ambiguity column is Medium or High, Design Doc column must show `done` or `waived` regardless of Complexity — ambiguity must be resolved even for Small items |
+| BA Status ready | BA Status column must show `ready` — not `needs-BA` or `blocked` |
 
-If **any check fails** (other than the design doc check — see below), stop immediately and output:
+**If the Criteria present, Criteria measurable, No open questions, or Story sized checks fail**, stop immediately:
 ```
 ❌ DoR NOT MET — {specific failing check}.
 
@@ -59,13 +64,32 @@ Return to business-analyst-agent to resolve before starting this task.
 Do NOT create TASK.md until DoR passes.
 ```
 
-If specifically the **Design doc cleared** check fails, stop immediately and output:
+**If the Design doc cleared check fails** (Medium/Large/XL, design-doc not done/waived):
 ```
 ❌ DoR NOT MET — Design doc required for {complexity} item.
-This item is marked design-doc: pending in SPRINT.md.
+This item shows design-doc: {current value} in SPRINT.md.
 
-Run /design-doc {feature-name} and resolve all open questions before starting this task.
-Do NOT create TASK.md until /design-doc is complete.
+Run /design-doc {feature-name} and resolve all open questions and obtain approval before starting this task.
+Do NOT create TASK.md until /design-doc is complete and SPRINT.md shows design-doc: done.
+```
+
+**If the Ambiguity resolved check fails** (Ambiguity = Medium/High, design-doc not done/waived):
+```
+❌ DoR NOT MET — Ambiguity unresolved for this item (Ambiguity = {level}).
+This item shows design-doc: {current value} in SPRINT.md.
+
+Even Small items require ambiguity resolution when Ambiguity is Medium or High.
+Run /design-doc {feature-name} to resolve the ambiguity before starting this task.
+Do NOT create TASK.md until /design-doc is complete and SPRINT.md shows design-doc: done.
+```
+
+**If the BA Status check fails**:
+```
+❌ DoR NOT MET — BA Status is {status} for this item.
+This item has not been cleared by business-analyst-agent.
+
+Contact business-analyst-agent to complete requirements and set BA Status = ready in SPRINT.md.
+Do NOT create TASK.md until BA Status = ready.
 ```
 
 Do not guess at missing criteria or rephrase vague ones — the BA agent must clarify them.
@@ -114,6 +138,22 @@ Create `output/{project}/.tasks/{task-id}.md`:
 
 <!-- Valid status values: IN PROGRESS | BLOCKED | REWORK | ON_HOLD | READY FOR QA | DONE
      Transitions: see .claude/rules/team-workflow.md Task State Machine -->
+
+## DoR Verification
+
+**Checked at task start — {today}**
+
+| Check | Result | Notes |
+|---|---|---|
+| Criteria present | ✅ Pass | |
+| Criteria measurable | ✅ Pass | |
+| No open questions | ✅ Pass | |
+| Story correctly sized | ✅ Pass | |
+| Design doc cleared | ✅ Pass / N/A | {value from SPRINT.md, or N/A if Small + Low ambiguity} |
+| Ambiguity resolved | ✅ Pass | {Ambiguity level from SPRINT.md} |
+| BA Status ready | ✅ Pass | |
+
+**Design doc reference**: {path to design doc, or "N/A — Small item, Low ambiguity" or "N/A — waived by orchestrator on {date}"}
 
 ## Acceptance Criteria
 {copied from SPRINT.md — these are what QA will verify}

@@ -14,7 +14,7 @@ argument-hint: "[project-name]"
 ```
 
 ```
-!`ls output/$ARGUMENTS/.bugs/ 2>/dev/null | grep "^BUG-" | sort -t'-' -k2 -n | tail -1 || echo "NO_BUGS_YET"`
+!`for f in output/$ARGUMENTS/.bugs/BUG-*.md; do [ -f "$f" ] && echo "=== $f ===" && cat "$f"; done 2>/dev/null || echo "NO_BUGS_YET"`
 ```
 
 ---
@@ -66,9 +66,9 @@ Wait for confirmation before continuing. Only proceed if the reporter confirms t
 
 ## Step 3 — Determine BUG Number
 
-Read the `.bugs/` listing from above.
+From the bug files loaded above:
 - If no bugs exist yet → this is BUG-001
-- If bugs exist → increment the highest existing number (BUG-004 → BUG-005)
+- If bugs exist → find the highest BUG-{N} number and increment it (BUG-004 → BUG-005)
 
 ---
 

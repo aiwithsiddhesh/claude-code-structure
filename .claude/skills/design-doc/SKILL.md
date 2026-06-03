@@ -19,7 +19,11 @@ Before filling the template, read:
 - Any constraints from `project-intake.json` that apply to this feature
 - Any existing design doc for this feature (check `output/{project}/design-docs/` if a project directory exists)
 
-If an existing design doc is found: update it rather than creating a new one. Carry forward resolved decisions and only re-open questions that have changed.
+If an existing design doc is found: update it rather than creating a new one. Apply these rules when updating:
+- **Carry forward** all resolved Section 0 items (checked `[x]`) — do not uncheck them.
+- **Carry forward** Section 9 (Approval Record) exactly as written — never blank, overwrite, or re-template it. If Section 9 is already filled with a named approver, that approval is preserved on re-run.
+- Only re-open Section 0 items that have genuinely changed (new information contradicts a prior resolution).
+- Only update sections where new context from SPRINT.md or the codebase changes the answer.
 
 ---
 
@@ -56,7 +60,7 @@ Use the template at `assets/design-doc-template.md`. Fill in all `[placeholder]`
 
 Do not leave any section empty. If a section is not applicable (e.g., no DB changes), write "Not applicable — [reason]".
 
-Section 9 (Approval Record) must be left blank at this stage — it is filled by a human, product owner, or lead engineer, not by the author.
+Section 9 (Approval Record): on a **first run** (no existing doc), leave it blank — it is filled by a human, product owner, or lead engineer, not by the author. On a **re-run** (existing doc found in Step 1), carry Section 9 forward exactly as written — never blank or overwrite it.
 
 ---
 

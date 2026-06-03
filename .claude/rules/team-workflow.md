@@ -194,6 +194,27 @@ Precedence when documents conflict — see the full precedence rules in the **Ar
 
 ## Task State Machine
 
+Sprint items have two levels of status that must not be confused:
+
+- **SPRINT.md Status** — tracks sprint-level commitment and progress (set by orchestrator and dev agents via skills)
+- **TASK.md Status** — tracks task execution state (set by dev agents and QA)
+
+### SPRINT.md Item Status Values
+
+| Status | Set By | Meaning |
+|---|---|---|
+| `COMMITTED` | `/sprint-plan` | Item is in scope for this sprint; TASK.md does not exist yet |
+| `IN PROGRESS` | Dev agent (via `/task-start`) | TASK.md created; agent is actively working |
+| `READY FOR QA` | Dev agent (via `/task-checkpoint` completion flow) | All steps done, awaiting QA sign-off |
+| `DONE` | `manual-functional-sdet` | QA signed off |
+| `BLOCKED` | Dev agent | Task cannot proceed; blocker and owner documented |
+| `REWORK` | `manual-functional-sdet` | QA rejected; defects to fix |
+| `ON_HOLD` | `hiring-manager-orchestrator` only | Deliberately paused |
+
+`/sprint-plan` sets Status to `COMMITTED`. `/task-start` transitions it to `IN PROGRESS` when TASK.md is created. Never set a sprint item to `IN PROGRESS` in SPRINT.md before `/task-start` has run.
+
+### TASK.md Execution State Machine
+
 Every sprint task has a **Status** field in its TASK.md. No state may be skipped.
 
 ```

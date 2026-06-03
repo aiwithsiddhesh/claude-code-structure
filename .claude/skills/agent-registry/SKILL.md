@@ -25,14 +25,17 @@ Complete reference for all 10 agents in the AI Software Delivery Team.
 
 ## 2. business-analyst-agent
 **Role**: Requirements & Business Analysis
-**Use For**: Requirements gathering, user story writing, acceptance criteria, MVP scope, risk identification
+**Use For**: Requirements gathering, user story writing, acceptance criteria, MVP scope, risk identification, ambiguity classification, SPRINT.md BA Status updates
 **NOT For**: Implementation, coding, testing
 
 **Assignment Triggers**:
-- Project initiation
+- Project initiation — must run before `/sprint-plan`; sets BA Status = `ready` in SPRINT.md for each item
 - Requirements unclear, ambiguous, or conflicting
 - User stories or acceptance criteria needed
 - Business logic needs documentation
+- Sprint planning is blocked because items show `BA Status = needs-BA`
+
+**Key output**: For every completed item, updates SPRINT.md backlog row with BA Status = `ready`, Acceptance Criteria, Complexity, Ambiguity (Low/Medium/High), and Priority. `/sprint-plan` will not commit items without this.
 
 ---
 
@@ -126,10 +129,25 @@ Complete reference for all 10 agents in the AI Software Delivery Team.
 | Manual testing / QA sign-off | manual-functional-sdet |
 | Automated test suite / CI tests | automation-sdet-agent |
 
+## Delivery Lifecycle
+
+```
+/start-project → BA readiness → /design-doc (M/L/XL + ambiguous items) → /sprint-plan → dev → QA → release
+```
+
+Quality gates in sequence:
+1. **BA gate** (`/sprint-plan` Step 3) — blocks `needs-BA` items; BA must set `BA Status = ready` first
+2. **Ambiguity gate** (`/sprint-plan` Step 5) — any item with Ambiguity Medium/High requires `/design-doc`, even Small items
+3. **Design approval gate** (`/design-doc` Section 9) — human non-author approval required; `/task-start` blocks until `design-doc: done`
+4. **DoR gate** (`/task-start` Step 2) — measurable criteria, BA Status, ambiguity resolved
+5. **Code review gate** (`/code-review`) — before READY FOR QA
+6. **QA gate** (`manual-functional-sdet`) — before DONE
+7. **Release gate** (`/release-checklist`) — reads SPRINT.md + TASK.md + BUG-N.md
+
 ## Parallel vs Sequential Patterns
 
 **Always Sequential**:
-- BA (requirements) → Dev → Manual QA → Release
+- BA (requirements + SPRINT.md updates) → design docs → `/sprint-plan` → Dev → Manual QA → Release
 - API design (backend) → Frontend integration
 
 **Can Be Parallel**:

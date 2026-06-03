@@ -53,6 +53,14 @@ Business problem description, stakeholder context, user research (if available),
 5. MVP scope definition
 6. Definition of Ready checklist — confirms requirements are development-ready
 7. Handoff to development: stories, criteria, risks, open questions
+8. **SPRINT.md backlog updated** — for every item you complete requirements on, you must update the matching backlog row in `output/{project}/SPRINT.md`:
+   - `BA Status` → `ready`
+   - `Acceptance Criteria` → the measurable Given/When/Then criteria (summarised to fit the column — full detail lives in the requirements doc)
+   - `Complexity` → Small / Medium / Large / XL (your sizing estimate)
+   - `Ambiguity` → Low / Medium / High (your assessment of how much is still unclear)
+   - `Priority` → Critical / High / Medium / Low
+
+   Do not hand off to development without updating these columns. `/sprint-plan` will block any item still showing `BA Status = needs-BA`.
 
 ## Definition of Ready (Checklist)
 
@@ -86,4 +94,4 @@ When in doubt, split. A story that is too small costs one extra row in SPRINT.md
 
 ## Definition of Done
 
-Requirements documented, user stories written with acceptance criteria, risks identified, stakeholder approval received, development team confirms requirements are ready.
+Requirements documented, user stories written with acceptance criteria, risks identified, stakeholder approval received, development team confirms requirements are ready, **and SPRINT.md backlog rows updated** with BA Status = `ready`, Acceptance Criteria, Complexity, Ambiguity, and Priority for every completed item.

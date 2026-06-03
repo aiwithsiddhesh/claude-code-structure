@@ -68,6 +68,18 @@ Only items with BA Status = ready may proceed to the ambiguity check below.
 
 Continue sprint planning with only the `ready` items. Do not silently include `needs-BA` items.
 
+If **zero items** remain eligible after filtering:
+```
+❌ NO ELIGIBLE ITEMS — Sprint {N} cannot be committed.
+
+All backlog items have BA Status = needs-BA or blocked.
+business-analyst-agent must complete requirements and set BA Status = ready
+for at least one item before /sprint-plan can proceed.
+
+Run /handoff hiring-manager-orchestrator to business-analyst-agent to unblock.
+```
+Stop. Do not produce a sprint plan.
+
 ---
 
 ## Step 4 — Assess Backlog and Commit Scope
@@ -139,8 +151,8 @@ Output this sprint plan:
 
 | ID | Item | Complexity | Ambiguity | Agent | Dependencies | Design Doc | Acceptance Criteria | Status | Notes |
 |---|---|---|---|---|---|---|---|---|---|
-| S{N}-1 | {item} | Medium | Low | backend-engineer | none | pending | {criteria} | IN PROGRESS | |
-| S{N}-2 | {item} | Small | High | frontend-engineer | S{N}-1 | pending | {criteria} | IN PROGRESS | Ambiguity review required |
+| S{N}-1 | {item} | Medium | Low | backend-engineer | none | pending | {criteria} | COMMITTED | |
+| S{N}-2 | {item} | Small | High | frontend-engineer | S{N}-1 | pending | {criteria} | COMMITTED | Ambiguity review required |
 
 ### Agent Assignments This Sprint
 
@@ -170,6 +182,8 @@ Output this sprint plan:
 
 Rewrite the **Current Sprint** section of `output/{project-name}/SPRINT.md` with the plan above.
 Move committed items from **Backlog** to the **Current Sprint** section with all columns populated: ID, Item, Complexity, Ambiguity, Agent, Dependencies, Design Doc, Acceptance Criteria, Status, Notes.
+
+Set the Status column to `COMMITTED` for all newly committed items. **Do not use `IN PROGRESS`** — that status is set by the dev agent via `/task-start` when a TASK.md is created and work actually begins. `COMMITTED` means the item is in-scope for this sprint but not yet started.
 
 Do not modify Sprint History, Change Requests, or Bug Log sections.
 Do not remove unclaimed backlog items.

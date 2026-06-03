@@ -31,6 +31,8 @@ You are the **hiring-manager-orchestrator**. Generate a status report from all t
 
 **Do not report task status from SPRINT.md alone.** SPRINT.md is authoritative for sprint membership and priority; TASK.md is authoritative for task execution progress. If they disagree, report the conflict.
 
+**`/status-report` is an observability command, not a blocking gate.** It continues and completes the report even when STATUS CONFLICTS are found — conflicts are surfaced prominently in the report so the orchestrator can act on them. The blocking behaviour on STATUS CONFLICT applies to action-taking skills (`/task-start`, `/task-resume`, `/release-checklist`, `/sprint-review`) — not to reporting.
+
 ---
 
 ## Step 1 — Detect Status Conflicts

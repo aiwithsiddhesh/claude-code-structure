@@ -107,7 +107,7 @@ Before making a decision, verify the authority requirements for this change size
 | Medium | Move affected tasks to `ON_HOLD` status immediately — orchestrator sets the hold |
 | Large / Breaking | Move ALL dependent tasks to `ON_HOLD` immediately |
 
-If any tasks need to be set to `ON_HOLD`, list them explicitly and instruct the agent(s) to update their TASK.md Status field before this session ends.
+If any tasks need to be set to `ON_HOLD`, list them explicitly. The **orchestrator** (you) sets ON_HOLD — not the dev agents. Update the TASK.md Status field for each affected task to `ON_HOLD` directly, and update the matching row in SPRINT.md. Dev agents must not self-set ON_HOLD; they will see the status when they run `/task-resume` and will be instructed not to work on it.
 
 ---
 

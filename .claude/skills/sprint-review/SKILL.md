@@ -39,6 +39,15 @@ For each item in the current sprint, determine status from its TASK.md:
 | **REWORK** | TASK.md Status field = `REWORK` — QA rejected, defects documented in latest checkpoint |
 | **NOT STARTED** | No TASK.md exists for this item |
 
+**Status conflict check** — after reading each item's TASK.md status, compare it against the status shown in the Current Sprint table in SPRINT.md:
+
+- If both sources agree → proceed with the status as determined.
+- If they disagree → flag immediately before proceeding with any other analysis on that item:
+  ```
+  ⚠️ STATUS CONFLICT on {task-id}: TASK.md says {X}, SPRINT.md says {Y}. Resolve before closing sprint.
+  ```
+  Do not count a conflicted item as DONE, READY FOR QA, or any other status until the conflict is resolved. Record it in the Sprint Review Report with status `CONFLICT — unresolved`.
+
 For each item marked DONE or READY FOR QA, verify:
 - `output/{project}/.tasks/{task-id}.md` exists
 - All steps in TASK.md are checked off

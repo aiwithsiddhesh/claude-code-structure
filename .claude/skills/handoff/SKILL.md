@@ -1,6 +1,7 @@
 ---
 name: handoff
 description: Generate a structured handoff document from one agent to another. Use when an agent completes its phase of work and needs to pass context to the receiving agent. Takes from-agent and to-agent names from $ARGUMENTS and current work context. Produces a handoff document covering completed work, pending work, acceptance criteria, risks, and immediate next actions for the receiver.
+disable-model-invocation: true
 argument-hint: "[from-agent] to [to-agent]"
 ---
 

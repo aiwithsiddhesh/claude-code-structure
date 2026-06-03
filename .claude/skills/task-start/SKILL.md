@@ -47,8 +47,9 @@ Then run the **Definition of Ready (DoR) gate** — verify ALL of the following 
 | Criteria are measurable | No criterion uses vague language ("fast", "user-friendly", "works correctly") — each must name a concrete, verifiable outcome |
 | No unresolved open questions | The story contains no `[ ]` open question markers left unanswered |
 | Story is correctly sized | ≤ 6 acceptance criteria; maps to one agent end-to-end |
+| Design doc cleared | If this item is Medium, Large, or XL in SPRINT.md, the design-doc column must show `done` or `waived` — not `pending` or blank |
 
-If **any check fails**, stop immediately and output:
+If **any check fails** (other than the design doc check — see below), stop immediately and output:
 ```
 ❌ DoR NOT MET — {specific failing check}.
 
@@ -56,6 +57,15 @@ If **any check fails**, stop immediately and output:
 
 Return to business-analyst-agent to resolve before starting this task.
 Do NOT create TASK.md until DoR passes.
+```
+
+If specifically the **Design doc cleared** check fails, stop immediately and output:
+```
+❌ DoR NOT MET — Design doc required for {complexity} item.
+This item is marked design-doc: pending in SPRINT.md.
+
+Run /design-doc {feature-name} and resolve all open questions before starting this task.
+Do NOT create TASK.md until /design-doc is complete.
 ```
 
 Do not guess at missing criteria or rephrase vague ones — the BA agent must clarify them.

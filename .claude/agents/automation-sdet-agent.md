@@ -63,6 +63,15 @@ Document coverage goals before starting:
 
 When a bug in `output/{project}/.bugs/` shows **Status: VERIFIED**, write a regression test:
 
+Before writing a regression test, run a deduplication check:
+
+- Search the project's test directory for a file matching the pattern `bug-{N}-*.test.*` (where `{N}` is the bug number).
+- If a matching file already exists:
+  - Verify whether that test is currently passing in CI.
+  - If passing → the regression test is already in place. Do not rewrite it. Update the **Regression Test** section of `BUG-{N}.md` if the file path and CI status are not already recorded, then set BUG-{N}.md **Status** to `CLOSED` and update SPRINT.md Bug Log to `CLOSED`.
+  - If failing → investigate why the existing test is failing before writing a new one. A failing regression test for a VERIFIED bug is a new issue — run `/bug-triage {project}` for it.
+- If no matching file exists → proceed with the steps below.
+
 1. Read `BUG-{N}.md` — use the **Reproduction Steps** as the test scenario and **Acceptance Criteria for Fix** as assertions
 2. Write an automated test that would have caught this bug before the fix
 3. The test must fail on the unfixed code and pass on the fixed code (think about this before writing)
@@ -114,7 +123,13 @@ Read `manual-functional-sdet` test execution notes for test cases marked `AUTOMA
 - One-off validation tests that will not recur
 - Features with open change requests that could alter acceptance criteria
 
-When you find `AUTOMATION READY` test cases, pick them up and begin automation work without waiting for an assignment. Document which test cases you are automating at the start of each session.
+When you find `AUTOMATION READY` test cases, before beginning automation work, run a deduplication check for each candidate test case:
+
+- Look for an existing test file in the project's test directory whose name or content corresponds to that test case (search by feature name, endpoint, or acceptance criterion keywords).
+- If a matching file already exists → skip that test case and log: `Skipping [test case name] — already automated at [file path].`
+- If no matching file exists → proceed with automation for that test case.
+
+Document which test cases you are automating and which you skipped (with reasons) at the start of each session.
 
 ## Task Lifecycle
 
